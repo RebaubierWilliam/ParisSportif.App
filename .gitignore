@@ -1,0 +1,34 @@
+## .NET / C# / WPF
+
+# Build output
+bin/
+obj/
+out/
+
+# NuGet packages (restored via dotnet restore)
+*.nupkg
+.nuget/
+
+# User-specific Visual Studio files
+*.user
+*.suo
+.vs/
+*.userprefs
+*.DS_Store
+
+# Crash dumps
+*.dmp
+
+# SQLite database (runtime data, not source)
+*.db
+*.db-shm
+*.db-wal
+
+# WebView2 user profile (runtime cache, logins, etc.)
+WebView2Profile/
+
+# Rider / JetBrains
+.idea/
+
+# Publish output
+publish/

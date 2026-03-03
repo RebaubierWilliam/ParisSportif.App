@@ -5,17 +5,17 @@ using ParisSportif.ViewModels;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace ParisSportif;
 
 public partial class MainWindow : Window
 {
     private readonly MainViewModel     _vm;
-    private readonly ExtractionService _extractionPS;   // pour ParionsSport
-    private readonly ExtractionService _extractionFS;   // pour FlashScore
-    private readonly FlashScoreService _flashScore;
-    private readonly HistoriqueService _historique;
+    private readonly ExtractionService _extractionPS;
 
     private ICollectionView? _parisView;
 
@@ -23,26 +23,15 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _historique   = new HistoriqueService();
         _extractionPS = new ExtractionService(WebViewPS);
-        _extractionFS = new ExtractionService(WebViewFS);
-        _flashScore   = new FlashScoreService(WebViewFS, _extractionFS);
-
-        _vm = new MainViewModel(_historique, _flashScore);
+        _vm = new MainViewModel();
         DataContext = _vm;
 
-        // Branchement des événements
-        _extractionPS.ParisExtracted          += _vm.OnParisExtracted;
-        _extractionPS.LogMessage              += _vm.Log;
-        _extractionFS.FlashScoreStatsReceived += _vm.OnFlashScoreStats;
-        _extractionFS.LogMessage              += _vm.Log;
-        _flashScore.LogMessage                += _vm.Log;
+        _extractionPS.ParisExtracted += OnParisExtracted;
+        _extractionPS.LogMessage     += _vm.Log;
 
-        // Initialisation WebView2 (async via événement)
         WebViewPS.CoreWebView2InitializationCompleted += OnPSCoreReady;
-        WebViewFS.CoreWebView2InitializationCompleted += OnFSCoreReady;
 
-        // Profile persistant (même session entre les lancements)
         InitWebViewEnvironmentAsync();
     }
 
@@ -53,36 +42,24 @@ public partial class MainWindow : Window
         var profileFolder = Path.Combine(appData, "ParisSportif", "WebView2Profile");
         Directory.CreateDirectory(profileFolder);
 
-        var env = await CoreWebView2Environment.CreateAsync(
-            userDataFolder: profileFolder);
-
+        var env = await CoreWebView2Environment.CreateAsync(userDataFolder: profileFolder);
         await WebViewPS.EnsureCoreWebView2Async(env);
-        await WebViewFS.EnsureCoreWebView2Async(env);
     }
 
-    // ── Handlers CoreWebView2 prêt ─────────────────────────────────────────
+    // ── Handler CoreWebView2 prêt ──────────────────────────────────────────
     private void OnPSCoreReady(object? s, CoreWebView2InitializationCompletedEventArgs e)
     {
-        if (!e.IsSuccess) { _vm.Log($"❌ WebView2 PS erreur : {e.InitializationException?.Message}"); return; }
+        if (!e.IsSuccess) { _vm.Log($"❌ WebView2 erreur : {e.InitializationException?.Message}"); return; }
 
+        WebViewPS.CoreWebView2.Navigate("https://www.parionssport.fdj.fr/");
         _extractionPS.Attach();
-        _flashScore.Attach();
 
-        // Auto-injection quand on arrive sur la page "Mes paris"
-        WebViewPS.CoreWebView2.NavigationCompleted += async (_, args) =>
+        WebViewPS.CoreWebView2.NewWindowRequested += (_, args) =>
         {
-            if (!args.IsSuccess) return;
-            var url = WebViewPS.CoreWebView2.Source;
-            TbUrl.Text = url;
-
-            if (url.Contains("mes-paris", StringComparison.OrdinalIgnoreCase))
-            {
-                _vm.Log("📄 Page Mes paris détectée → injection automatique");
-                await _extractionPS.InjectExtracteurAsync();
-            }
+            args.Handled = true;
+            WebViewPS.CoreWebView2.Navigate(args.Uri);
         };
 
-        // Filtre live via CollectionView
         _parisView = CollectionViewSource.GetDefaultView(_vm.Paris);
         _parisView.Filter = item => item is Pari p && (!_vm.ShowLiveOnly || p.IsLive);
         _vm.PropertyChanged += (_, e2) =>
@@ -92,38 +69,108 @@ public partial class MainWindow : Window
         };
     }
 
-    private void OnFSCoreReady(object? s, CoreWebView2InitializationCompletedEventArgs e)
+    // ── Extraction terminée → mise à jour VM + ouverture onglet Paris ──────
+    private void OnParisExtracted(List<Pari> paris)
     {
-        if (!e.IsSuccess) return;
-        _extractionFS.Attach();
-        _flashScore.Attach();
+        _vm.OnParisExtracted(paris);
+        Dispatcher.Invoke(() =>
+        {
+            TabParis.Header = $"📊 Paris extraits ({paris.Count})";
+            MainTabs.SelectedItem = TabParis;
+        });
     }
 
-    // ── Gestionnaires de boutons ────────────────────────────────────────────
-
+    // ── Bouton Extraire ────────────────────────────────────────────────────
     private async void BtnExtraire_Click(object sender, RoutedEventArgs e)
         => await _extractionPS.InjectExtracteurAsync();
 
-    private void BtnMesParis_Click(object sender, RoutedEventArgs e)
-        => WebViewPS.CoreWebView2?.Navigate("https://www.parionssport.fdj.fr/mes-paris");
-
-    private async void BtnInjecterFS_Click(object sender, RoutedEventArgs e)
-        => await _flashScore.InjectManuallyAsync();
-
-    private void BtnEffacerPrompt_Click(object sender, RoutedEventArgs e)
-        => _vm.CurrentPrompt = "";
-
-    private void BtnCashout_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
-        _vm.SelectedPari = pari;
-        _vm.LancerFlashScoreCommand.Execute(null);
-    }
-
+    // ── Bouton Prompt : crée un onglet Analyse dédié par match ─────────────
     private void BtnPrompt_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
         _vm.SelectedPari = pari;
-        _vm.GenererPromptCashoutCommand.Execute(null);
+
+        // Si l'onglet existe déjà pour ce match, l'activer
+        var existing = MainTabs.Items
+            .OfType<TabItem>()
+            .FirstOrDefault(t => t.Tag is string id && id == pari.NumeroPari);
+        if (existing != null) { MainTabs.SelectedItem = existing; return; }
+
+        // Générer le prompt
+        var prompt = PromptBuilder.Build(pari, null);
+        Clipboard.SetText(prompt);
+
+        // ── Contenu de l'onglet ───────────────────────────────────────────
+        var textBox = new TextBox
+        {
+            Text              = prompt,
+            FontFamily        = new FontFamily("Consolas"),
+            FontSize          = 12,
+            AcceptsReturn     = true,
+            TextWrapping      = TextWrapping.Wrap,
+            VerticalScrollBarVisibility   = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Background        = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E)),
+            Foreground        = new SolidColorBrush(Color.FromRgb(0xCD, 0xD6, 0xF4)),
+            Padding           = new Thickness(14),
+            BorderThickness   = new Thickness(0),
+        };
+
+        var copyBtn = new Button
+        {
+            Content = "📋 Copier",
+            Padding = new Thickness(12, 6, 12, 6),
+            Style   = (Style)FindResource("BtnPrimary"),
+        };
+        copyBtn.Click += (_, _) => { Clipboard.SetText(textBox.Text); _vm.Log("📋 Prompt copié."); };
+
+        var toolbar = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Margin      = new Thickness(10, 6, 10, 6),
+        };
+        toolbar.Children.Add(copyBtn);
+
+        var content = new Grid();
+        content.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        content.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        Grid.SetRow(toolbar, 0);
+        Grid.SetRow(textBox, 1);
+        content.Children.Add(toolbar);
+        content.Children.Add(textBox);
+
+        // ── En-tête avec bouton ✕ ─────────────────────────────────────────
+        TabItem tabItem = null!;
+
+        var closeBtn = new Button
+        {
+            Content         = "✕",
+            FontSize        = 10,
+            Width           = 18,
+            Height          = 18,
+            Padding         = new Thickness(0),
+            Margin          = new Thickness(8, 0, 0, 0),
+            Background      = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Cursor          = Cursors.Hand,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        closeBtn.Click += (_, _) => MainTabs.Items.Remove(tabItem);
+
+        var header = new StackPanel { Orientation = Orientation.Horizontal };
+        header.Children.Add(new TextBlock
+        {
+            Text              = $"📋 {pari.MatchLabel}",
+            VerticalAlignment = VerticalAlignment.Center,
+            MaxWidth          = 220,
+            TextTrimming      = TextTrimming.CharacterEllipsis,
+        });
+        header.Children.Add(closeBtn);
+
+        tabItem = new TabItem { Header = header, Content = content, Tag = pari.NumeroPari };
+        MainTabs.Items.Add(tabItem);
+        MainTabs.SelectedItem = tabItem;
+
+        _vm.Log($"📋 Prompt généré pour {pari.MatchLabel} — copié dans le presse-papier");
     }
 }

@@ -14,9 +14,8 @@ public class ExtractionService
     private readonly WebView2 _webView;
     private readonly string   _extracteurScript;
 
-    public event Action<List<Pari>>?      ParisExtracted;
-    public event Action<CashoutStats>?    FlashScoreStatsReceived;
-    public event Action<string>?          LogMessage;
+    public event Action<List<Pari>>? ParisExtracted;
+    public event Action<string>?     LogMessage;
 
     public ExtractionService(WebView2 webView)
     {
@@ -41,22 +40,6 @@ public class ExtractionService
         if (_webView.CoreWebView2 is null) return;
         Log("⚙️ Injection du script extracteur…");
         await _webView.CoreWebView2.ExecuteScriptAsync(_extracteurScript);
-    }
-
-    /// <summary>Injecte le script FlashScore avec les données du pari pré-encodées.</summary>
-    public async Task InjectFlashScoreExtractorAsync(Pari pari)
-    {
-        if (_webView.CoreWebView2 is null) return;
-
-        var betJson = JsonSerializer.Serialize(pari);
-        var b64     = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(betJson));
-
-        var baseScript = LoadEmbeddedScript("flashscore_extractor.js");
-        // Remplace le placeholder __BET_B64__ par les données réelles
-        var script = baseScript.Replace("__BET_B64__", b64);
-
-        Log("⚙️ Injection du script FlashScore…");
-        await _webView.CoreWebView2.ExecuteScriptAsync(script);
     }
 
     // ── Réception des messages JS → C# ─────────────────────────────────────
@@ -86,18 +69,10 @@ public class ExtractionService
                     ParisExtracted?.Invoke(paris);
                     break;
 
-                case "FS_STATS":
-                    var stats = JsonSerializer.Deserialize<CashoutStats>(
-                        root.GetProperty("data").GetRawText(),
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                        ?? new CashoutStats();
-                    Log($"✅ Stats FlashScore reçues ({stats.Rows.Count} ligne(s))");
-                    FlashScoreStatsReceived?.Invoke(stats);
-                    break;
-
                 case "LOG":
                     Log($"[JS] {root.GetProperty("message").GetString()}");
                     break;
+
             }
         }
         catch (Exception ex)

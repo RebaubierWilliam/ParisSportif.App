@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build)",
+      "Bash(dotnet run)",
+      "Bash(taskkill /PID 20492 /F)",
+      "Bash(dotnet build \"c:/Source/ParisSportif.App\")"
+    ]
+  }
+}

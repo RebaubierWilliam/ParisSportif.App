@@ -178,18 +178,3 @@ Si plusieurs options présentent un écart positif, privilégie celle avec le pl
 
 - **Recommandation** : [Jouer l'option X à la cote Y / Ne pas jouer]
 - **Justification synthétique** : (Cite les 2-3 facteurs clés qui créent la value : absence majeure, forme exceptionnelle, conditions très favorables, etc.)
-
-Liste des paris : 
-
-PARIS #5
-
-❓ Question du Pari:
-CB - J.Ward ou L.Barré marque au moins un essai ? (1.7 -> 2 / Mise max 25€) - 80 Mins
-
-🏆 Match: Stade Français vs Toulouse
-🎯 Sport: Rugby
-🏅 Compétition: Cotes Boostées TOP 14
-📅 Date: À 21h05
-
-📊 COTES DISPONIBLES:
-Oui (2,00)

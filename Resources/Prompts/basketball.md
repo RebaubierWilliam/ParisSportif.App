@@ -185,31 +185,6 @@ EV(B) = [P_simulée(B) × (Cote_B - 1)] - [P_simulée(A) × 1]
 Note sur le N (match nul) : En NBA, le match nul n'existe pas en temps réglementaire. La cote N à 18.0 dans ton pari semble indiquer un format de pari spécifique (mi-temps ? période ? autre ?). Clarifie le type de pari avant d'analyser.
 
 
-ÉTAPE 7 – PLAN DE CASHOUT CONDITIONNEL (NOUVEAU)
-Le cashout est un outil de gestion du risque, pas une stratégie systématique. Les books prennent une marge sur le cashout (~5-10% de la valeur réelle). Utilise-le uniquement dans des scénarios précis.
-7.1 Quand envisager un cashout
-Scénario in-gameAction recommandéeJustificationBlessure d'un joueur clé de TON équipe (pendant le match)✅ CASHOUT immédiatL'avantage estimé a disparu. Coupe la perte/sécurise le profit.Ton équipe mène de >15 pts au 3Q et tu paries sur le favori⚠️ Considérer un cashout partiel (50%)Sécuriser une partie du profit, laisser courir le reste.Reverse momentum : l'adversaire fait un run de >15-0⚠️ Évaluer la cause du run (rotation ? fatigue ? effondrement ?)Si structurel → cashout. Si cyclique (bench units) → attendre.Tu paries sur l'outsider et il mène à la mi-temps⚠️ Cashout partiel possibleLes favoris ont tendance à revenir en 2ème mi-temps (~58% du temps). Sécuriser 40-50% du gain peut être optimal.Ton pari est en ligne avec la tendance du match❌ NE PAS cashoutLaisser courir. Le cashout détruit la value à long terme.Éjection d'un joueur clé✅ CASHOUT si c'est ton joueur / ❌ si c'est l'adversaireAjustement instantané de la probabilité.Match très serré au 4Q, ton équipe mène de 1-5 pts❌ Généralement nonSauf si tu as déjà un profit confortable et veux protéger ton bankroll.
-7.2 Règle de décision pour le cashout
-
-Compare le cashout proposé avec ta probabilité live estimée.
-
-Cashout proposé = X €
-Gain potentiel total = Y €
-P_live estimée de gagner = Z %
-EV de laisser courir = (Z% × Y) - ((1-Z%) × mise initiale)
-Si le cashout > EV de laisser courir → cashout. Sinon → laisser courir.
-
-
-Préfère le hedging au cashout : Placer un pari inverse sur un autre book offre souvent un meilleur prix que le cashout proposé.
-
-7.3 Scénarios de cashout pré-définis pour CE match
-Avant le match, définis 3 scénarios :
-
-Scénario A (favorable) : [Ex : Lakers mènent de +10 à la mi-temps] → Cashout partiel 30%, laisser courir 70%.
-Scénario B (défavorable mais récupérable) : [Ex : Lakers perdent de -8 au 3Q mais leurs titulaires n'ont pas joué le 3Q] → Attendre le 4Q.
-Scénario C (catastrophique) : [Ex : blessure de LeBron/AD, ou -20 au 3Q] → Cashout total immédiat.
-
-
 ÉTAPE 8 – TABLEAU RÉCAPITULATIF
 Pour les VALUE BETS identifiés uniquement :
 #MatchÉquipeCoteP. Impl.P. SimuléeÉcartEV/100€ConfianceMise suggérée (% bankroll)1%%+%+€%
@@ -231,8 +206,3 @@ Risques identifiés
 
 [Risque 1 : ex. Blessure possible de X, load management...]
 [Risque 2 : ex. L'équipe B a tendance à surperformer en B2B]
-
-Plan de cashout résumé
-
-Cashout si : [condition]
-Laisser courir si : [condition]

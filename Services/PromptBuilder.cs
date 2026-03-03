@@ -1,33 +1,72 @@
+using System.IO;
 using ParisSportif.Models;
 
 namespace ParisSportif.Services;
 
 /// <summary>
-/// Construit les prompts cashout en C# (équivalent de buildCashoutPrompt JS).
+/// Construit le prompt cashout : données du pari + protocole sport-spécifique.
 /// </summary>
 public static class PromptBuilder
 {
     private static readonly string Sep = new('═', 52);
 
+    /// <summary>
+    /// Point d'entrée unique : route vers cashout (live) ou value bet (à venir).
+    /// </summary>
+    public static string Build(Pari p, CashoutStats? stats = null) =>
+        p.IsLive ? BuildCashoutPrompt(p, stats) : BuildValueBetPrompt(p);
+
     public static string BuildCashoutPrompt(Pari p, CashoutStats? stats = null)
     {
-        var eq  = p.MatchLabel;
-        var co  = p.Cashout ?? "N/A";
-        var lines = new List<string>();
+        var context  = BuildContext(p, stats);
+        var template = LoadCashoutTemplate(p.Sport);
+        return context + "\n\n" + template;
+    }
 
-        lines.Add("ANALYSE CASHOUT EN TEMPS RÉEL");
-        lines.Add(Sep);
-        lines.Add("");
-        lines.Add("📋 MON PARI");
-        lines.Add($"Match           : {eq}");
-        lines.Add($"Sport           : {p.Sport}");
-        lines.Add($"Sélection       : {p.Selection} @ cote {p.Cote}");
-        lines.Add($"Mise initiale   : {p.Mise}");
-        lines.Add($"Gains potentiels: {p.GainsPotentiels}");
-        lines.Add($"Cash Out actuel : {co}");
-        lines.Add($"{p.NumeroPari}  |  {p.DatePari}");
-        lines.Add($"Marché          : {p.Marche}");
-        lines.Add("");
+    public static string BuildValueBetPrompt(Pari p)
+    {
+        var lines = new List<string>
+        {
+            "ANALYSE VALUE BET — PARI À VENIR",
+            Sep,
+            "",
+            "📋 PARI À ANALYSER",
+            $"Match      : {p.MatchLabel}",
+            $"Sport      : {p.Sport}",
+            $"Sélection  : {p.Selection} @ cote {p.Cote}",
+            $"Marché     : {p.Marche}",
+            $"Mise prévue: {p.Mise}",
+            $"Date       : {p.DatePari}",
+            "",
+            Sep,
+            "UTILISE LE PROTOCOLE VALUE BET CI-DESSOUS",
+            Sep,
+        };
+
+        var template = LoadValueBetTemplate(p.Sport);
+        return string.Join("\n", lines) + "\n\n" + template;
+    }
+
+    // ── Contexte du pari injecté en tête du prompt ──────────────────────────
+    private static string BuildContext(Pari p, CashoutStats? stats)
+    {
+        var co    = p.Cashout ?? "N/A";
+        var lines = new List<string>
+        {
+            "ANALYSE CASHOUT EN TEMPS RÉEL",
+            Sep,
+            "",
+            "📋 MON PARI",
+            $"Match           : {p.MatchLabel}",
+            $"Sport           : {p.Sport}",
+            $"Sélection       : {p.Selection} @ cote {p.Cote}",
+            $"Mise initiale   : {p.Mise}",
+            $"Gains potentiels: {p.GainsPotentiels}",
+            $"Cash Out actuel : {co}",
+            $"{p.NumeroPari}  |  {p.DatePari}",
+            $"Marché          : {p.Marche}",
+            ""
+        };
 
         if (stats is not null)
         {
@@ -38,13 +77,13 @@ public static class PromptBuilder
             if (stats.Rows.Count > 0)
             {
                 lines.Add("");
-                var h0 = (p.Equipes.ElementAtOrDefault(0) ?? "Eq.1")[..Math.Min(10, (p.Equipes.ElementAtOrDefault(0) ?? "Eq.1").Length)];
-                var h1 = (p.Equipes.ElementAtOrDefault(1) ?? "Eq.2")[..Math.Min(10, (p.Equipes.ElementAtOrDefault(1) ?? "Eq.2").Length)];
+                var h0 = Trunc(p.Equipes.ElementAtOrDefault(0) ?? "Eq.1", 10);
+                var h1 = Trunc(p.Equipes.ElementAtOrDefault(1) ?? "Eq.2", 10);
                 lines.Add("┌──────────────────────────────────────────────┐");
                 lines.Add($"│ {"Statistique",-22} │ {h0,-10} │ {h1,-10} │");
                 lines.Add("├──────────────────────────────────────────────┤");
                 foreach (var r in stats.Rows)
-                    lines.Add($"│ {r.Name[..Math.Min(22, r.Name.Length)],-22} │ {r.Home,10} │ {r.Away,-10} │");
+                    lines.Add($"│ {Trunc(r.Name, 22),-22} │ {r.Home,10} │ {r.Away,-10} │");
                 lines.Add("└──────────────────────────────────────────────┘");
             }
         }
@@ -57,31 +96,66 @@ public static class PromptBuilder
 
         lines.Add("");
         lines.Add(Sep);
-        lines.Add("OBJECTIF : Cashout MAINTENANT ou laisser courir ?");
+        lines.Add("UTILISE LE PROTOCOLE CASHOUT CI-DESSOUS POUR CE PARI");
         lines.Add(Sep);
-        lines.Add("");
-        lines.Add("═══ PROBABILITÉS ═══");
-        lines.Add($"P_pari    = 1 / {p.Cote} = _____%");
-        lines.Add($"P_cashout = {co} / {p.GainsPotentiels} = _____%");
-        lines.Add($"P_actuelle({p.Selection}) = ______%");
-        lines.Add("");
-        lines.Add("═══ EXPECTED VALUE ═══");
-        lines.Add($"EV(laisser) = P_act × {p.GainsPotentiels} − (1−P_act) × {p.Mise}");
-        lines.Add($"EV(cashout) = {co} − {p.Mise}  ← gain certain");
-        lines.Add("Règle : EV(laisser) > EV(cashout) ET P_act > P_cashout → LAISSER COURIR");
-        lines.Add("");
-        lines.Add("═══ FACTEURS QUALITATIFS ═══");
-        lines.Add($"□ Ma sélection ({p.Selection}) domine les stats clés (xG, tirs) ?");
-        lines.Add("□ Occasions récentes EN MA FAVEUR ?");
-        lines.Add("□ Mon équipe en danger (carton rouge, blessure, pression) ?");
-        lines.Add("□ Le score favorise-t-il ma sélection ?");
-        lines.Add("□ Risque réel de retournement CONTRE moi ?");
-        lines.Add("");
-        lines.Add("═══ VERDICT FINAL ═══");
-        lines.Add("DÉCISION : [ CASHOUT  /  LAISSER COURIR ]");
-        lines.Add($"Cash Out : {co}  →  Gains pot. : {p.GainsPotentiels}");
-        lines.Add("Justification : [à remplir par le modèle]");
 
         return string.Join("\n", lines);
     }
+
+    // ── Chargement des templates ─────────────────────────────────────────────
+    private static string LoadValueBetTemplate(string sport)
+    {
+        var fileName = (sport ?? "").ToLowerInvariant() switch
+        {
+            "football" or "foot" or "soccer" => "foot.md",
+            "tennis"                          => "tennis.md",
+            "basketball" or "basket"          => "basketball.md",
+            _                                 => "Autres.md",
+        };
+
+        var path = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Resources", "Prompts", fileName);
+
+        if (File.Exists(path))
+            return File.ReadAllText(path, System.Text.Encoding.UTF8);
+
+        var fallback = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Resources", "Prompts", "Autres.md");
+
+        return File.Exists(fallback)
+            ? File.ReadAllText(fallback, System.Text.Encoding.UTF8)
+            : "";
+    }
+
+    private static string LoadCashoutTemplate(string sport)
+    {
+        var fileName = (sport ?? "").ToLowerInvariant() switch
+        {
+            "football" or "foot" or "soccer" => "cashout_foot.md",
+            "tennis"                          => "cashout_tennis.md",
+            "basketball" or "basket"          => "cashout_basketball.md",
+            _                                 => "cashout_autres.md",
+        };
+
+        var path = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Resources", "Prompts", fileName);
+
+        if (File.Exists(path))
+            return File.ReadAllText(path, System.Text.Encoding.UTF8);
+
+        // Fallback générique
+        var fallback = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Resources", "Prompts", "cashout_autres.md");
+
+        return File.Exists(fallback)
+            ? File.ReadAllText(fallback, System.Text.Encoding.UTF8)
+            : "";
+    }
+
+    private static string Trunc(string s, int max) =>
+        s.Length <= max ? s : s[..max];
 }

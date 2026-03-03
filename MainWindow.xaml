@@ -3,30 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="ParisSportif — Analyse Live"
-        Height="820" Width="1280"
+        WindowState="Maximized"
         MinHeight="600" MinWidth="900"
         Background="{StaticResource BgBrush}">
 
-  <Window.Resources>
-    <!-- Convertisseur bool→Visibility -->
-    <BooleanToVisibilityConverter x:Key="BoolVis"/>
-  </Window.Resources>
-
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="*"/>          <!-- WebView + onglets -->
-      <RowDefinition Height="5"/>          <!-- GridSplitter -->
-      <RowDefinition Height="280" MinHeight="160"/> <!-- Panneau bas -->
+      <RowDefinition Height="*"/>     <!-- TabControl plein écran -->
+      <RowDefinition Height="Auto"/>  <!-- Barre de statut -->
     </Grid.RowDefinitions>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!--  PARTIE HAUTE : onglets + WebView2                              -->
+    <!--  TabControl principal (onglets statiques + dynamiques)          -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <TabControl Grid.Row="0" x:Name="MainTabs"
-                SelectedIndex="{Binding TabIndex}"
-                Background="White">
+    <TabControl Grid.Row="0" x:Name="MainTabs" Background="White">
 
-      <!-- ── Onglet 1 : ParionsSport ─────────────────────────────── -->
+      <!-- ── Onglet 0 : ParionsSport ─────────────────────────────── -->
       <TabItem Header="🎯 ParionsSport">
         <Grid>
           <Grid.RowDefinitions>
@@ -34,265 +26,190 @@
             <RowDefinition Height="*"/>
           </Grid.RowDefinitions>
 
-          <!-- Barre d'outils -->
           <StackPanel Grid.Row="0" Orientation="Horizontal"
                       Margin="8,6" Background="White">
             <Button Content="🔄 Extraire mes paris"
                     Style="{StaticResource BtnPrimary}"
                     Click="BtnExtraire_Click"
-                    Margin="0,0,8,0"
+                    Margin="0,0,12,0"
                     ToolTip="Injecte le script extracteur sur la page actuelle"/>
-            <Button Content="⬅ Mes paris"
-                    Style="{StaticResource BtnSecondary}"
-                    Click="BtnMesParis_Click"
-                    Margin="0,0,8,0"
-                    ToolTip="Navigue vers la page Mes paris"/>
-            <TextBlock x:Name="TbUrl" VerticalAlignment="Center"
-                       Foreground="{StaticResource MutedBrush}" FontSize="11"
-                       Margin="8,0,0,0"/>
+            <TextBlock VerticalAlignment="Center" FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       Text="💡 Connecte-toi, navigue vers tes paris ou une page de cotes, puis clique Extraire"/>
           </StackPanel>
 
-          <!-- WebView ParionsSport -->
-          <wv2:WebView2 x:Name="WebViewPS" Grid.Row="1"
-                        Source="https://www.parionssport.fdj.fr/mes-paris"/>
+          <wv2:WebView2 x:Name="WebViewPS" Grid.Row="1"/>
         </Grid>
       </TabItem>
 
-      <!-- ── Onglet 2 : FlashScore ───────────────────────────────── -->
-      <TabItem Header="⚡ FlashScore">
+      <!-- ── Onglet 1 : Paris extraits (s'active automatiquement) ── -->
+      <TabItem x:Name="TabParis" Header="📊 Paris extraits">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
           </Grid.RowDefinitions>
 
-          <!-- Barre d'outils -->
-          <StackPanel Grid.Row="0" Orientation="Horizontal"
-                      Margin="8,6" Background="White">
-            <Button Content="🎯 Injecter le script"
-                    Style="{StaticResource BtnPrimary}"
-                    Click="BtnInjecterFS_Click"
-                    Margin="0,0,8,0"
-                    ToolTip="Injecte le script extracteur sur la page de match FlashScore ouverte"/>
-            <Border Background="#FFF3CD" CornerRadius="4" Padding="8,4"
-                    x:Name="FsHintBorder">
-              <TextBlock FontSize="11" Foreground="#856404">
-                💡 Navigue vers la page du match, puis clique "Injecter le script"
+          <!-- Barre d'info -->
+          <Border Grid.Row="0" Background="#F8F9FA"
+                  BorderBrush="#E0E6ED" BorderThickness="0,0,0,1"
+                  Padding="12,8">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock VerticalAlignment="Center" Margin="0,0,20,0"
+                         FontWeight="SemiBold" Foreground="{StaticResource TextBrush}">
+                <Run Text="📋 Paris : "/>
+                <Run Text="{Binding TotalParis, Mode=OneWay}" FontWeight="Bold"
+                     Foreground="{StaticResource PrimaryBrush}"/>
+                <Run Text=" | 🔴 Live : "/>
+                <Run Text="{Binding LiveCount, Mode=OneWay}" FontWeight="Bold"
+                     Foreground="{StaticResource LiveBrush}"/>
               </TextBlock>
-            </Border>
-          </StackPanel>
+              <CheckBox Content="🔴 Live seulement" VerticalAlignment="Center"
+                        IsChecked="{Binding ShowLiveOnly}" FontSize="12"/>
+            </StackPanel>
+          </Border>
 
-          <!-- WebView FlashScore -->
-          <wv2:WebView2 x:Name="WebViewFS" Grid.Row="1"
-                        Source="https://www.flashscore.com/"/>
+          <!-- DataGrid grande hauteur de ligne -->
+          <DataGrid Grid.Row="1"
+                    x:Name="PariGrid"
+                    ItemsSource="{Binding Paris}"
+                    SelectedItem="{Binding SelectedPari}"
+                    AutoGenerateColumns="False"
+                    IsReadOnly="True"
+                    RowHeight="48"
+                    GridLinesVisibility="Horizontal"
+                    HeadersVisibility="Column"
+                    SelectionMode="Single"
+                    BorderThickness="0"
+                    Background="White"
+                    RowBackground="White"
+                    AlternatingRowBackground="#FAFBFC"
+                    CanUserResizeRows="False"
+                    CanUserReorderColumns="False"
+                    FontSize="14">
+
+            <DataGrid.RowStyle>
+              <Style TargetType="DataGridRow">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsLive}" Value="True">
+                    <Setter Property="Background" Value="#FFF5F5"/>
+                    <Setter Property="BorderBrush" Value="#E74C3C"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </DataGrid.RowStyle>
+
+            <DataGrid.Columns>
+
+              <!-- Statut -->
+              <DataGridTextColumn Header="Statut" Width="90"
+                                  Binding="{Binding StatutLabel}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Sport -->
+              <DataGridTextColumn Header="Sport" Width="60"
+                                  Binding="{Binding SportEmoji}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="FontSize" Value="22"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Match -->
+              <DataGridTextColumn Header="Match" Width="*"
+                                  Binding="{Binding MatchLabel}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="FontSize" Value="15"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Compétition -->
+              <DataGridTextColumn Header="Compétition" Width="150"
+                                  Binding="{Binding Marche}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Sélection -->
+              <DataGridTextColumn Header="Sélection" Width="200"
+                                  Binding="{Binding Selection}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Cote(s) -->
+              <DataGridTextColumn Header="Cote(s)" Width="180"
+                                  Binding="{Binding Cote}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Heure -->
+              <DataGridTextColumn Header="Heure" Width="70"
+                                  Binding="{Binding MinuteOuHeure}">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Action -->
+              <DataGridTemplateColumn Header="Action" Width="110">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="6,0"
+                                VerticalAlignment="Center">
+                      <Button Content="📋 Prompt"
+                              Style="{StaticResource BtnSecondary}"
+                              FontSize="12" Padding="10,5"
+                              Tag="{Binding}"
+                              Click="BtnPrompt_Click"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+          </DataGrid>
         </Grid>
       </TabItem>
 
-      <!-- ── Onglet 3 : Analyse / Prompt ────────────────────────── -->
-      <TabItem Header="📋 Analyse">
-        <Grid Background="White" Margin="12">
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-
-          <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="📋 Copier le prompt"
-                    Style="{StaticResource BtnPrimary}"
-                    Command="{Binding CopierPromptCommand}"
-                    Margin="0,0,8,0"/>
-            <Button Content="🗑 Effacer"
-                    Style="{StaticResource BtnSecondary}"
-                    Click="BtnEffacerPrompt_Click"/>
-          </StackPanel>
-
-          <TextBox Grid.Row="1"
-                   Text="{Binding CurrentPrompt, Mode=TwoWay}"
-                   FontFamily="Consolas" FontSize="12"
-                   AcceptsReturn="True" TextWrapping="Wrap"
-                   VerticalScrollBarVisibility="Auto"
-                   HorizontalScrollBarVisibility="Auto"
-                   Background="#1E1E2E" Foreground="#CDD6F4"
-                   Padding="12" BorderThickness="0"/>
-        </Grid>
-      </TabItem>
+      <!-- Les onglets Analyse sont ajoutés dynamiquement par code-behind -->
 
     </TabControl>
 
-    <!-- ── GridSplitter ───────────────────────────────────────────────── -->
-    <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch"
-                  Background="#E0E6ED" ShowsPreview="True"/>
+    <!-- ── Barre de statut ─────────────────────────────────────────────── -->
+    <Border Grid.Row="1" Background="#2C3E50" Padding="12,5">
+      <TextBlock Text="{Binding StatusLog}"
+                 Foreground="#CDD6F4" FontSize="11"
+                 FontFamily="Consolas" TextTrimming="CharacterEllipsis"/>
+    </Border>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!--  PANNEAU BAS : liste des paris + contrôles                      -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <Grid Grid.Row="2" Background="White">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>   <!-- En-tête barre d'outils -->
-        <RowDefinition Height="*"/>      <!-- DataGrid -->
-        <RowDefinition Height="Auto"/>   <!-- Barre de statut -->
-      </Grid.RowDefinitions>
-
-      <!-- Barre d'outils panneau bas -->
-      <Border Grid.Row="0" Background="#F8F9FA"
-              BorderBrush="#E0E6ED" BorderThickness="0,0,0,1"
-              Padding="12,8">
-        <DockPanel>
-          <!-- Gauche : compteurs + filtres -->
-          <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-            <TextBlock VerticalAlignment="Center" Margin="0,0,16,0"
-                       FontWeight="SemiBold" Foreground="{StaticResource TextBrush}">
-              <Run Text="📋 Mes paris : "/>
-              <Run Text="{Binding TotalParis}" FontWeight="Bold" Foreground="{StaticResource PrimaryBrush}"/>
-              <Run Text=" | 🔴 Live : "/>
-              <Run Text="{Binding LiveCount}" FontWeight="Bold" Foreground="{StaticResource LiveBrush}"/>
-            </TextBlock>
-
-            <CheckBox Content="🔴 Live seulement" VerticalAlignment="Center"
-                      IsChecked="{Binding ShowLiveOnly}"
-                      Margin="0,0,16,0" FontSize="12"/>
-          </StackPanel>
-
-          <!-- Droite : boutons actions -->
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
-            <Button Content="📂 Historique" Style="{StaticResource BtnSecondary}"
-                    Command="{Binding ChargerHistoriqueCommand}"
-                    Margin="0,0,8,0"/>
-            <Button Content="💾 Sauvegarder" Style="{StaticResource BtnSecondary}"
-                    Command="{Binding SauvegarderCommand}"
-                    Margin="0,0,8,0"/>
-          </StackPanel>
-        </DockPanel>
-      </Border>
-
-      <!-- DataGrid des paris -->
-      <DataGrid Grid.Row="1"
-                x:Name="PariGrid"
-                ItemsSource="{Binding Paris}"
-                SelectedItem="{Binding SelectedPari}"
-                AutoGenerateColumns="False"
-                IsReadOnly="True"
-                GridLinesVisibility="Horizontal"
-                HeadersVisibility="Column"
-                SelectionMode="Single"
-                BorderThickness="0"
-                Background="White"
-                RowBackground="White"
-                AlternatingRowBackground="#FAFBFC"
-                CanUserResizeRows="False"
-                CanUserReorderColumns="False"
-                FontSize="13">
-
-        <DataGrid.RowStyle>
-          <Style TargetType="DataGridRow">
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding IsLive}" Value="True">
-                <Setter Property="Background" Value="#FFF5F5"/>
-                <Setter Property="BorderBrush" Value="#E74C3C"/>
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </DataGrid.RowStyle>
-
-        <DataGrid.Columns>
-
-          <!-- Statut -->
-          <DataGridTextColumn Header="Statut" Width="80"
-                              Binding="{Binding StatutLabel}"/>
-
-          <!-- Sport -->
-          <DataGridTextColumn Header="Sport" Width="60"
-                              Binding="{Binding SportEmoji}">
-            <DataGridTextColumn.ElementStyle>
-              <Style TargetType="TextBlock">
-                <Setter Property="HorizontalAlignment" Value="Center"/>
-                <Setter Property="FontSize" Value="18"/>
-              </Style>
-            </DataGridTextColumn.ElementStyle>
-          </DataGridTextColumn>
-
-          <!-- Match -->
-          <DataGridTextColumn Header="Match" Width="*"
-                              Binding="{Binding MatchLabel}">
-            <DataGridTextColumn.ElementStyle>
-              <Style TargetType="TextBlock">
-                <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-              </Style>
-            </DataGridTextColumn.ElementStyle>
-          </DataGridTextColumn>
-
-          <!-- Sélection -->
-          <DataGridTextColumn Header="Sélection" Width="140"
-                              Binding="{Binding Selection}"/>
-
-          <!-- Cote -->
-          <DataGridTextColumn Header="Cote" Width="55"
-                              Binding="{Binding Cote}"/>
-
-          <!-- Score -->
-          <DataGridTextColumn Header="Score" Width="70"
-                              Binding="{Binding Score}"/>
-
-          <!-- Minute -->
-          <DataGridTextColumn Header="Min." Width="60"
-                              Binding="{Binding MinuteOuHeure}"/>
-
-          <!-- Mise → Gains -->
-          <DataGridTemplateColumn Header="Mise → Gains" Width="120">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <TextBlock VerticalAlignment="Center">
-                  <Run Text="{Binding Mise}" Foreground="{StaticResource MutedBrush}"/>
-                  <Run Text=" → "/>
-                  <Run Text="{Binding GainsPotentiels}" FontWeight="SemiBold"/>
-                </TextBlock>
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-
-          <!-- Cashout -->
-          <DataGridTextColumn Header="Cash Out" Width="80"
-                              Binding="{Binding Cashout}">
-            <DataGridTextColumn.ElementStyle>
-              <Style TargetType="TextBlock">
-                <Setter Property="Foreground" Value="#27AE60"/>
-                <Setter Property="FontWeight" Value="Bold"/>
-              </Style>
-            </DataGridTextColumn.ElementStyle>
-          </DataGridTextColumn>
-
-          <!-- Actions -->
-          <DataGridTemplateColumn Header="Actions" Width="220">
-            <DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
-                <StackPanel Orientation="Horizontal" Margin="4,2">
-                  <Button Content="📊 Cashout ?"
-                          Style="{StaticResource BtnLive}"
-                          Margin="0,0,4,0"
-                          Tag="{Binding}"
-                          Click="BtnCashout_Click"
-                          Visibility="{Binding IsLive, Converter={StaticResource BoolVis}}"/>
-                  <Button Content="📋 Prompt"
-                          Style="{StaticResource BtnSecondary}"
-                          FontSize="11" Padding="6,4"
-                          Tag="{Binding}"
-                          Click="BtnPrompt_Click"/>
-                </StackPanel>
-              </DataTemplate>
-            </DataGridTemplateColumn.CellTemplate>
-          </DataGridTemplateColumn>
-
-        </DataGrid.Columns>
-      </DataGrid>
-
-      <!-- Barre de statut -->
-      <Border Grid.Row="2" Background="#2C3E50" Padding="12,5">
-        <TextBlock Text="{Binding StatusLog}"
-                   Foreground="#CDD6F4" FontSize="11"
-                   FontFamily="Consolas"/>
-      </Border>
-
-    </Grid>
   </Grid>
 </Window>

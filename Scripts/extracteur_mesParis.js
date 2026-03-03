@@ -1,132 +1,246 @@
 /**
- * extracteur_mesParis.js — Version WebView2
- * Remplace alert/window.open/clipboard par window.chrome.webview.postMessage()
- * Injecté automatiquement par ExtractionService.cs sur la page "Mes paris"
+ * extracteur_mesParis.js — Extracteur adaptatif ParionsSport
+ * Mode 1 : page "Mes paris"  → psel-history-card
+ * Mode 2 : page de cotes     → psel-event / psel-live-event
  */
 (function () {
     'use strict';
 
     function log(msg) {
-        if (window.chrome && window.chrome.webview) {
+        if (window.chrome && window.chrome.webview)
             window.chrome.webview.postMessage(JSON.stringify({ type: 'LOG', message: msg }));
-        }
     }
 
     function sendParis(paris) {
-        if (window.chrome && window.chrome.webview) {
+        if (window.chrome && window.chrome.webview)
             window.chrome.webview.postMessage(JSON.stringify({ type: 'PARIS_EXTRACTED', data: paris }));
-        }
     }
 
-    // ── Détection du sport ─────────────────────────────────────────────────
-    function detecterSportClasses(classes) {
-        if (classes.includes('football'))   return 'Football';
-        if (classes.includes('tennis'))     return 'Tennis';
-        if (classes.includes('basketball')) return 'Basketball';
-        if (classes.includes('handball'))   return 'Handball';
-        if (classes.includes('volleyball')) return 'Volley Ball';
-        if (classes.includes('snooker'))    return 'Snooker';
-        if (classes.includes('rugby'))      return 'Rugby';
-        if (classes.includes('hockey'))     return 'Hockey';
+
+    function matchSportStr(str) {
+        const s = str.toLowerCase();
+        if (s.includes('football') || s.includes('foot') || s.includes('soccer')) return 'Football';
+        if (s.includes('tennis'))                                                  return 'Tennis';
+        if (s.includes('basketball') || s.includes('basket'))                     return 'Basketball';
+        if (s.includes('handball'))                                                return 'Handball';
+        if (s.includes('volleyball') || s.includes('volley'))                     return 'Volley Ball';
+        if (s.includes('rugby'))                                                   return 'Rugby';
+        if (s.includes('hockey'))                                                  return 'Hockey';
+        if (s.includes('snooker'))                                                 return 'Snooker';
+        return null;
+    }
+
+    function detecterSport(root) {
+        // 1. Essayer plusieurs sélecteurs d'icône de sport
+        const iconSelectors = [
+            '[class*="sprite-icon-"]',
+            '[class*="sport-icon"]',
+            '[class*="icon-sport"]',
+            '[class*="discipline"]',
+            '[class*="sport-"]',
+        ];
+        for (const sel of iconSelectors) {
+            const el = root.querySelector(sel);
+            if (!el) continue;
+            const combined = [el.className, el.getAttribute('aria-label') || '', el.getAttribute('alt') || ''].join(' ');
+            const r = matchSportStr(combined);
+            if (r) return r;
+        }
+
+        // 2. Chercher dans les ancêtres (jusqu'à 4 niveaux)
+        let ancestor = root.parentElement;
+        for (let i = 0; i < 4 && ancestor; i++, ancestor = ancestor.parentElement) {
+            const r = matchSportStr(ancestor.className || '');
+            if (r) return r;
+        }
+
+        // 3. Fallback sur l'URL
+        const r = matchSportStr(window.location.pathname);
+        if (r) return r;
+
+        log('⚠️ Sport non détecté (Autre) pour : ' + root.className.slice(0, 80));
         return 'Autre';
     }
 
-    // ── Extraction d'un pari depuis une carte historique ──────────────────
-    function extracterPariDepuisCard(card) {
-        const p = {};
+    // ══════════════════════════════════════════════════════════════════
+    //  MODE 1 — Mes paris (psel-history-card)
+    // ══════════════════════════════════════════════════════════════════
+    function extracterMesParis() {
+        const cards = document.querySelectorAll('psel-history-card');
+        if (cards.length === 0) return null;
 
-        // Type
-        const titleEl = card.querySelector('.psel-history-card__title');
-        p.type = titleEl ? titleEl.textContent.trim() : 'Simple';
+        const paris = [];
+        cards.forEach(card => {
+            try {
+                const p = {};
 
-        // Sport
-        const iconEl = card.querySelector('[class*="sprite-icon-"]');
-        p.sport = iconEl ? detecterSportClasses(iconEl.className) : 'Autre';
+                p.type = card.querySelector('.psel-history-card__title')?.textContent.trim() ?? 'Simple';
 
-        // Équipes
-        const opps = card.querySelectorAll('.psel-opponent__name');
-        p.equipes = [];
-        opps.forEach((o, i) => { if (i < 2) p.equipes.push(o.textContent.trim()); });
+                p.sport = detecterSport(card);
 
-        // Score (live uniquement)
-        const scoreEl = card.querySelector('.psel-score--current');
-        p.score = scoreEl ? scoreEl.textContent.replace(/\s+/g, ' ').trim() : null;
+                p.equipes = [];
+                card.querySelectorAll('.psel-opponent__name').forEach((o, i) => {
+                    if (i < 2) p.equipes.push(o.textContent.trim());
+                });
 
-        // Statut live
-        const liveTimerEl  = card.querySelector('psel-live-timer');
-        const marketLabelEl = card.querySelector('.psel-cart-market__label');
-        const marketLabel  = marketLabelEl ? marketLabelEl.textContent.replace(/\s+/g, ' ').trim() : '';
-        p.isLive = !!(liveTimerEl || marketLabel.includes('Live'));
+                p.score        = card.querySelector('.psel-score--current')?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+                const liveEl   = card.querySelector('psel-live-timer');
+                const mktLabel = card.querySelector('.psel-cart-market__label');
+                const mktText  = mktLabel?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+                p.isLive       = !!(liveEl || mktText.includes('Live'));
+                p.minuteOuHeure= card.querySelector('.psel-timer')?.textContent.replace(/\s+/g, ' ').trim() ?? 'N/A';
+                p.marche       = mktText;
+                p.selection    = mktLabel?.querySelector('.psel-font-bold')?.textContent.trim() ?? 'N/A';
+                // Cote individuelle — plusieurs sélecteurs en cascade
+                const coteSelectors = [
+                    '.psel-cart-market__value',
+                    '[class*="market__value"]',
+                    '[class*="cart-market__value"]',
+                    '[class*="odd__value"]',
+                    '[class*="odd-value"]',
+                    '[class*="psel-odd"]',
+                    '[class*="price"]',
+                ];
+                let coteVal = 'N/A';
+                for (const sel of coteSelectors) {
+                    const el = card.querySelector(sel);
+                    if (el) { const t = el.textContent.trim(); if (t) { coteVal = t; break; } }
+                }
+                p.cote = coteVal;
 
-        // Minute / heure
-        const timerEl = card.querySelector('.psel-timer');
-        p.minuteOuHeure = timerEl ? timerEl.textContent.replace(/\s+/g, ' ').trim() : 'N/A';
+                p.coteTotale = 'N/A'; p.mise = 'N/A'; p.gainsPotentiels = 'N/A';
+                card.querySelectorAll('.psel-history-card__summary__item').forEach(item => {
+                    const lbl = item.querySelector('.psel-text-sm')?.textContent.trim() ?? '';
+                    const val = item.querySelector('.psel-history-card__summary__item__amount')?.textContent.trim() ?? '';
+                    if (lbl.includes('Cote totale'))                            p.coteTotale     = val;
+                    if (lbl.includes('Cote') && !lbl.includes('totale') && val) p.cote           = val;
+                    if (lbl.includes('Mise'))                                    p.mise            = val;
+                    if (lbl.includes('Gains'))                                   p.gainsPotentiels = val;
+                });
 
-        // Marché et sélection
-        p.marche = marketLabel;
-        const selEl = marketLabelEl ? marketLabelEl.querySelector('.psel-font-bold') : null;
-        p.selection = selEl ? selEl.textContent.trim() : 'N/A';
+                // Fallback regex dans mktText
+                if (!p.cote || p.cote === 'N/A') {
+                    const m = mktText.match(/\b(\d{1,2}[.,]\d{2})\b/);
+                    if (m) p.cote = m[1];
+                }
 
-        // Cote
-        const coteEl = card.querySelector('.psel-cart-market__value');
-        p.cote = coteEl ? coteEl.textContent.trim() : 'N/A';
+                const cashoutBtn = card.querySelector('.psel-button--cashout');
+                if (cashoutBtn) {
+                    const txt = cashoutBtn.textContent.replace(/\s+/g, ' ').trim();
+                    const m   = txt.match(/Cash\s*Out\s*[:\s]+([\d,]+\s*€)/i);
+                    p.cashout = m ? m[1].trim() : txt.replace(/Cash\s*Out\s*:/i, '').trim();
+                } else {
+                    p.cashout = null;
+                }
 
-        // Résumé financier
-        p.coteTotale = 'N/A'; p.mise = 'N/A'; p.gainsPotentiels = 'N/A';
-        card.querySelectorAll('.psel-history-card__summary__item').forEach(item => {
-            const lbl = item.querySelector('.psel-text-sm');
-            const val = item.querySelector('.psel-history-card__summary__item__amount');
-            if (!lbl || !val) return;
-            const t = lbl.textContent.trim();
-            if (t.includes('Cote totale')) p.coteTotale      = val.textContent.trim();
-            if (t.includes('Mise'))        p.mise             = val.textContent.trim();
-            if (t.includes('Gains'))       p.gainsPotentiels  = val.textContent.trim();
+                p.numeroPari = 'N/A'; p.datePari = 'N/A';
+                card.querySelector('.psel-history-card__info')
+                    ?.querySelectorAll('span').forEach(span => {
+                        const t = span.textContent.trim();
+                        if (t.startsWith('Pari')) p.numeroPari = t;
+                        if (t.startsWith('Le '))  p.datePari   = t;
+                    });
+
+                paris.push(p);
+            } catch (err) { log('Erreur card: ' + err.message); }
         });
 
-        // Cashout
-        const cashoutBtn = card.querySelector('.psel-button--cashout');
-        if (cashoutBtn) {
-            const txt = cashoutBtn.textContent.replace(/\s+/g, ' ').trim();
-            const m   = txt.match(/Cash\s*Out\s*[:\s]+([\d,]+\s*€)/i);
-            p.cashout = m ? m[1].trim() : txt.replace(/Cash\s*Out\s*:/i, '').trim();
-        } else {
-            p.cashout = null;
-        }
-
-        // Numéro & date
-        p.numeroPari = 'N/A'; p.datePari = 'N/A';
-        const infoEl = card.querySelector('.psel-history-card__info');
-        if (infoEl) {
-            infoEl.querySelectorAll('span').forEach(span => {
-                const t = span.textContent.trim();
-                if (t.startsWith('Pari')) p.numeroPari = t;
-                if (t.startsWith('Le ')) p.datePari   = t;
-            });
-        }
-
-        return p;
+        return paris;
     }
 
-    // ── Point d'entrée ────────────────────────────────────────────────────
-    const mainElement = document.querySelector('main');
-    if (!mainElement) {
-        log('⚠️ Aucun élément <main> trouvé');
+    // ══════════════════════════════════════════════════════════════════
+    //  MODE 2 — Page de cotes (événements disponibles)
+    // ══════════════════════════════════════════════════════════════════
+    function extracterPageCotes() {
+        // Sélecteur réel confirmé par dump HTML : psel-event-main
+        const EVENT_SELECTORS = [
+            'psel-event-main',
+            'psel-event-card', 'psel-live-event-card',
+            '.psel-event', '[class*="event-card"]',
+        ];
+
+        function sportDepuisHref(href) {
+            if (!href) return 'Autre';
+            return matchSportStr(href) ?? 'Autre';
+        }
+
+        let containers = [];
+        for (const s of EVENT_SELECTORS) {
+            const found = document.querySelectorAll(s);
+            if (found.length > 0) { containers = [...found]; break; }
+        }
+        if (containers.length === 0) return null;
+
+        const paris = [];
+        let idx = 0;
+        containers.forEach(el => {
+            try {
+                // Équipes
+                const equipes = Array.from(el.querySelectorAll('.psel-opponent__name'))
+                    .slice(0, 2).map(t => t.textContent.trim());
+                if (equipes.length === 0) return;
+
+                // Heure / statut
+                const minuteOuHeure = el.querySelector('time.psel-timer, .psel-timer')
+                    ?.textContent.trim() ?? 'N/A';
+
+                // Compétition (marché)
+                const marche = el.querySelector('.psel-event-info__competition')
+                    ?.textContent.trim() ?? '';
+
+                // Score (si live)
+                const score = el.querySelector('.psel-scoreboard__score, .psel-score--current, [class*="score--"]')
+                    ?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+
+                // Live
+                const isLive = !!el.querySelector('psel-live-timer, [class*="live-timer"], [class*="liveTimer"]');
+
+                // Sport depuis l'href de l'événement
+                const href  = el.querySelector('a.psel-event__link, a[href*="/paris-"]')?.getAttribute('href') ?? '';
+                const sport = sportDepuisHref(href) || detecterSport(el);
+
+                // Cotes : une ligne par match avec toutes les cotes groupées
+                const outcomes = Array.from(el.querySelectorAll('psel-outcome'));
+                const labels = outcomes
+                    .map(o => o.querySelector('.psel-outcome__label')?.textContent.trim() ?? '')
+                    .filter(Boolean);
+                const cotes = outcomes
+                    .map(o => o.querySelector('.psel-outcome__data')?.textContent.trim() ?? '')
+                    .filter(Boolean);
+
+                paris.push({
+                    type: 'Disponible', sport, equipes, score, isLive,
+                    minuteOuHeure, marche,
+                    selection: labels.join(' / ') || 'N/A',
+                    cote:      cotes.join(' / ')  || 'N/A',
+                    coteTotale: 'N/A', mise: '', gainsPotentiels: '',
+                    cashout: null, numeroPari: `evt-${++idx}`, datePari: 'N/A',
+                });
+            } catch (err) { log('Erreur event: ' + err.message); }
+        });
+
+        return paris.length > 0 ? paris : null;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  Point d'entrée
+    // ══════════════════════════════════════════════════════════════════
+    log('🔍 Détection du type de page…');
+
+    const paris = extracterMesParis();
+    if (paris !== null) {
+        log(`✅ Mode "Mes paris" — ${paris.length} paris trouvés`);
+        sendParis(paris);
         return;
     }
 
-    const historyCards = mainElement.querySelectorAll('psel-history-card');
-    if (historyCards.length === 0) {
-        log('⚠️ Aucune psel-history-card trouvée. Es-tu bien sur la page "Mes paris" ?');
+    const cotes = extracterPageCotes();
+    if (cotes !== null) {
+        log(`✅ Mode "Page de cotes" — ${cotes.length} entrées trouvées`);
+        sendParis(cotes);
         return;
     }
 
-    const mesParis = [];
-    historyCards.forEach(card => {
-        try { mesParis.push(extracterPariDepuisCard(card)); }
-        catch (err) { log('Erreur parsing card: ' + err.message); }
-    });
-
-    log('Extraction terminée : ' + mesParis.length + ' paris');
-    sendParis(mesParis);
+    log('⚠️ Aucune donnée reconnue sur cette page. Es-tu bien sur une page ParionsSport avec des paris ou des cotes ?');
 
 })();

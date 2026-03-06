@@ -65,7 +65,13 @@
                      Foreground="{StaticResource LiveBrush}"/>
               </TextBlock>
               <CheckBox Content="🔴 Live seulement" VerticalAlignment="Center"
-                        IsChecked="{Binding ShowLiveOnly}" FontSize="12"/>
+                        IsChecked="{Binding ShowLiveOnly}" FontSize="12"
+                        Margin="0,0,16,0"/>
+              <Button Content="🔍 Scan Value bookmakers"
+                      Style="{StaticResource BtnPrimary}"
+                      Click="BtnScanValue_Click"
+                      FontSize="12" Padding="12,5"
+                      ToolTip="Génère un prompt comparant tes cotes avec Pinnacle, Betclic, Winamax, Bet365 pour détecter les value bets"/>
             </StackPanel>
           </Border>
 
@@ -197,6 +203,30 @@
 
             </DataGrid.Columns>
           </DataGrid>
+        </Grid>
+      </TabItem>
+
+      <!-- ── Onglet DeepSeek ──────────────────────────────────────────── -->
+      <TabItem x:Name="TabDeepSeek" Header="🤖 DeepSeek">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+
+          <StackPanel Grid.Row="0" Orientation="Horizontal"
+                      Margin="8,6" Background="White">
+            <Button Content="📋 Coller le prompt"
+                    Style="{StaticResource BtnPrimary}"
+                    Click="BtnCollerDeepSeek_Click"
+                    Margin="0,0,12,0"
+                    ToolTip="Colle le contenu du presse-papier dans le chat DeepSeek"/>
+            <TextBlock VerticalAlignment="Center" FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       Text="💡 Active 🔍 Search dans DeepSeek avant de coller pour les cotes en temps réel"/>
+          </StackPanel>
+
+          <wv2:WebView2 x:Name="WebViewDS" Grid.Row="1"/>
         </Grid>
       </TabItem>
 

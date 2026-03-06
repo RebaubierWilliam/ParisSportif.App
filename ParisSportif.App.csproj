@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net7.0-windows</TargetFramework>
@@ -9,24 +8,20 @@
     <AssemblyName>ParisSportif</AssemblyName>
     <RootNamespace>ParisSportif</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2739.15" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
   </ItemGroup>
-
   <!-- Embed JS scripts as resources -->
   <ItemGroup>
     <EmbeddedResource Include="Scripts\extracteur_mesParis.js" />
     <EmbeddedResource Include="Scripts\flashscore_extractor.js" />
   </ItemGroup>
-
   <!-- Copy prompt .md files to output -->
   <ItemGroup>
     <Content Include="Resources\Prompts\*.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-
 </Project>

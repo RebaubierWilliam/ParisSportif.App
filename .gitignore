@@ -32,3 +32,6 @@ WebView2Profile/
 
 # Publish output
 publish/
+
+# Claude Code
+.claude/settings.local.json

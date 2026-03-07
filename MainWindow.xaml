@@ -216,25 +216,75 @@
                 </DataGridTextColumn.ElementStyle>
               </DataGridTextColumn>
 
-              <!-- ⑦ Indicateur paris/cote — anomalie, triable -->
+              <!-- ⑦ Indicateur paris/cote — anomalie, triable, coloré -->
               <DataGridTemplateColumn Header="⚡ Indicateur" Width="Auto" MinWidth="120"
                                       SortMemberPath="AnomalieMax"
                                       CanUserSort="True">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <StackPanel VerticalAlignment="Center" Margin="6,4"
-                                HorizontalAlignment="Center">
-                      <TextBlock Text="{Binding AnomalieLabelMax}"
-                                 FontSize="13" FontWeight="Bold"
-                                 HorizontalAlignment="Center"
-                                 TextWrapping="Wrap"/>
-                      <TextBlock Text="{Binding AnomalieDetail}"
-                                 FontSize="10" FontFamily="Consolas"
-                                 HorizontalAlignment="Center"
-                                 Foreground="{StaticResource MutedBrush}"
-                                 TextWrapping="Wrap"
-                                 Margin="0,2,0,0"/>
-                    </StackPanel>
+                    <Border CornerRadius="5" Margin="5,3" Padding="6,4">
+                      <Border.Style>
+                        <Style TargetType="Border">
+                          <Setter Property="Background" Value="Transparent"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding AnomalieNiveau}" Value="3">
+                              <Setter Property="Background" Value="#FDEEEE"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding AnomalieNiveau}" Value="2">
+                              <Setter Property="Background" Value="#FEF5EC"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding AnomalieNiveau}" Value="1">
+                              <Setter Property="Background" Value="#FEFCE8"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Border.Style>
+                      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding AnomalieLabelMax}"
+                                   FontSize="13" FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                              <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding AnomalieNiveau}" Value="3">
+                                  <Setter Property="Foreground" Value="#C0392B"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding AnomalieNiveau}" Value="2">
+                                  <Setter Property="Foreground" Value="#D35400"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding AnomalieNiveau}" Value="1">
+                                  <Setter Property="Foreground" Value="#A0760A"/>
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding AnomalieDetail}"
+                                   FontSize="10" FontFamily="Consolas"
+                                   HorizontalAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,0">
+                          <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                              <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                              <Style.Triggers>
+                                <DataTrigger Binding="{Binding AnomalieNiveau}" Value="3">
+                                  <Setter Property="Foreground" Value="#C0392B"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding AnomalieNiveau}" Value="2">
+                                  <Setter Property="Foreground" Value="#D35400"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding AnomalieNiveau}" Value="1">
+                                  <Setter Property="Foreground" Value="#A0760A"/>
+                                </DataTrigger>
+                              </Style.Triggers>
+                            </Style>
+                          </TextBlock.Style>
+                        </TextBlock>
+                      </StackPanel>
+                    </Border>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>

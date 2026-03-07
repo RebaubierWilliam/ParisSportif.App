@@ -139,11 +139,32 @@ public class Pari
         }
     }
 
-    /// <summary>Ecart max absolu — sert au tri de la colonne.</summary>
+    /// <summary>
+    /// Valeur max pour le tri : préfère le Diff le plus positif.
+    /// Si toutes les issues sont négatives, remonte la moins négative (la plus proche de 0).
+    /// </summary>
     public double AnomalieMax =>
-        Anomalies.Any() ? Anomalies.Max(a => Math.Abs(a.Diff)) : -1.0;
+        Anomalies.Any() ? Anomalies.Max(a => a.Diff) : -999.0;
 
-    /// <summary>Label affiché dans le DataGrid, ex: "🔴 +28% [1]"</summary>
+    /// <summary>
+    /// Niveau d'anomalie pour les DataTriggers XAML (couleurs).
+    /// 0 = rien | 1 = faible (≥5%) | 2 = moyen (≥12%) | 3 = fort (≥20%)
+    /// </summary>
+    public int AnomalieNiveau
+    {
+        get
+        {
+            var list = Anomalies;
+            if (!list.Any()) return 0;
+            var abs = Math.Abs(list.OrderByDescending(a => a.Diff).First().Diff);
+            if (abs >= 20) return 3;
+            if (abs >= 12) return 2;
+            if (abs >= 5)  return 1;
+            return 0;
+        }
+    }
+
+    /// <summary>Label affiché dans le DataGrid, ex: "🚨 +28% [1]"</summary>
     public string AnomalieLabelMax
     {
         get
@@ -151,8 +172,9 @@ public class Pari
             var list = Anomalies;
             if (!list.Any()) return "-";
 
-            var top  = list.OrderByDescending(a => Math.Abs(a.Diff)).First();
-            var abs  = Math.Abs(top.Diff);
+            // Priorité au Diff le plus élevé (positif d'abord, sinon le moins négatif)
+            var top = list.OrderByDescending(a => a.Diff).First();
+            var abs = Math.Abs(top.Diff);
             if (abs < 5) return "-";
 
             var emoji = abs >= 20 ? "🚨" : abs >= 12 ? "⚠️" : "💡";

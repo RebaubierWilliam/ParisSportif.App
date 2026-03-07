@@ -199,7 +199,7 @@
                 const href  = el.querySelector('a.psel-event__link, a[href*="/paris-"]')?.getAttribute('href') ?? '';
                 const sport = sportDepuisHref(href) || detecterSport(el);
 
-                // Cotes : une ligne par match avec toutes les cotes groupées
+                // Cotes + popularité : une ligne par match avec toutes les cotes groupées
                 const outcomes = Array.from(el.querySelectorAll('psel-outcome'));
                 const labels = outcomes
                     .map(o => o.querySelector('.psel-outcome__label')?.textContent.trim() ?? '')
@@ -208,11 +208,43 @@
                     .map(o => o.querySelector('.psel-outcome__data')?.textContent.trim() ?? '')
                     .filter(Boolean);
 
+                // Pourcentages de paris (% parieurs par issue) — plusieurs sélecteurs pour robustesse
+                const PCT_SELECTORS = [
+                    '.psel-outcome__popularity',
+                    '.psel-outcome__percentage',
+                    '[class*="outcome__popularity"]',
+                    '[class*="outcome__percentage"]',
+                    '[class*="outcome__percent"]',
+                    '[class*="popularity__value"]',
+                    '[class*="popularity-value"]',
+                    '[class*="percent-value"]',
+                    '[class*="bets-percent"]',
+                    '[class*="betPercent"]',
+                    '[class*="bet-percent"]',
+                ];
+                const pourcentages = outcomes.map(o => {
+                    for (const sel of PCT_SELECTORS) {
+                        const el2 = o.querySelector(sel);
+                        if (el2) {
+                            const t = el2.textContent.trim();
+                            if (t) return t;
+                        }
+                    }
+                    // Fallback : chercher un texte qui ressemble à un pourcentage dans l'outcome
+                    const all = o.querySelectorAll('*');
+                    for (const node of all) {
+                        const t = node.textContent.trim();
+                        if (/^\d{1,3}\s*%$/.test(t)) return t;
+                    }
+                    return '';
+                }).filter(Boolean);
+
                 paris.push({
                     type: 'Disponible', sport, equipes, score, isLive,
                     minuteOuHeure, marche,
-                    selection: labels.join(' / ') || 'N/A',
-                    cote:      cotes.join(' / ')  || 'N/A',
+                    selection:         labels.join(' / ')        || 'N/A',
+                    cote:              cotes.join(' / ')         || 'N/A',
+                    pourcentagesParis: pourcentages,
                     coteTotale: 'N/A', mise: '', gainsPotentiels: '',
                     cashout: null, numeroPari: `evt-${++idx}`, datePari: 'N/A',
                 });

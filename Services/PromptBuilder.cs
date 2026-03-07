@@ -34,6 +34,7 @@ public static class PromptBuilder
             $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
             $"Marché    : {p.Marche} | {p.NumeroPari} | {p.DatePari}",
         };
+        AddRepartitionLine(lines, p);
 
         lines.AddRange(McpScrapingLines(p, isLive: true));
         lines.Add("");
@@ -51,6 +52,7 @@ public static class PromptBuilder
             $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
             $"Marché    : {p.Marche} | {p.NumeroPari}",
         };
+        AddRepartitionLine(lines, p);
 
         lines.AddRange(McpScrapingLines(p, isLive: false));
         lines.Add("");
@@ -122,6 +124,7 @@ public static class PromptBuilder
         };
         lines.Add(p.Score is not null ? $"Score  : {p.Score}" : "Avant le coup d'envoi");
         lines.Add($"Minute : {p.MinuteOuHeure}");
+        AddRepartitionLine(lines, p);
         lines.Add("");
         lines.Add(sep);
         lines.Add("UTILISE LE PROTOCOLE CASHOUT CI-DESSOUS POUR CE PARI");
@@ -146,11 +149,9 @@ public static class PromptBuilder
             $"Marché     : {p.Marche}",
             $"Mise prévue: {p.Mise}",
             $"Date       : {p.DatePari}",
-            "",
-            sep,
-            "UTILISE LE PROTOCOLE VALUE BET CI-DESSOUS",
-            sep,
         };
+        AddRepartitionLine(lines, p);
+        lines.AddRange(new[] { "", sep, "UTILISE LE PROTOCOLE VALUE BET CI-DESSOUS", sep });
 
         var template = LoadValueBetTemplate(p.Sport);
         return string.Join("\n", lines) + "\n\n" + template;
@@ -265,6 +266,23 @@ public static class PromptBuilder
         return File.Exists(path)
             ? File.ReadAllText(path, Encoding.UTF8)
             : "";
+    }
+
+    /// <summary>
+    /// Ajoute la ligne "% Parieurs" si les données sont disponibles.
+    /// Permet à Claude de détecter des anomalies (cote élevée mais 80% de parieurs dessus = signal).
+    /// </summary>
+    private static void AddRepartitionLine(List<string> lines, Pari p)
+    {
+        if (p.PourcentagesParis == null || p.PourcentagesParis.Count == 0) return;
+        var selLabels = (p.Selection ?? "").Split('/').Select(s => s.Trim()).ToList();
+        var parts     = new List<string>();
+        for (int i = 0; i < p.PourcentagesParis.Count; i++)
+        {
+            var lbl = i < selLabels.Count ? selLabels[i] : (i + 1).ToString();
+            parts.Add($"{lbl}: {p.PourcentagesParis[i]}");
+        }
+        lines.Add($"% Parieurs: {string.Join(" / ", parts)}  ⚠️ anomalie si écart cote/% important");
     }
 
     private static string Encode(string s) => Uri.EscapeDataString(s);

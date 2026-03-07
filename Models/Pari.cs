@@ -52,6 +52,9 @@ public class Pari
     [JsonPropertyName("datePari")]
     public string DatePari { get; set; } = "";
 
+    [JsonPropertyName("pourcentagesParis")]
+    public List<string> PourcentagesParis { get; set; } = new List<string>();
+
     // ── Métadonnées C# (non présentes dans le JS) ──────────────────
     public DateTime DateExtraction { get; set; } = DateTime.Now;
     public string? PromptGenere { get; set; }
@@ -61,6 +64,23 @@ public class Pari
                            : string.Join(" ", Equipes);
 
     public string StatutLabel => IsLive ? "🔴 LIVE" : "⏳ À venir";
+
+    /// <summary>Répartition des % de parieurs, ex: "1: 55% / N: 22% / 2: 23%"</summary>
+    public string RepartitionLabel
+    {
+        get
+        {
+            if (PourcentagesParis == null || PourcentagesParis.Count == 0) return "-";
+            var parts = new List<string>();
+            var selLabels = (Selection ?? "").Split('/').Select(s => s.Trim()).ToList();
+            for (int i = 0; i < PourcentagesParis.Count; i++)
+            {
+                var lbl = i < selLabels.Count ? selLabels[i] : (i + 1).ToString();
+                parts.Add($"{lbl}: {PourcentagesParis[i]}");
+            }
+            return string.Join(" / ", parts);
+        }
+    }
 
     public string SportEmoji => Sport switch
     {

@@ -21,6 +21,13 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _showLiveOnly = false;
 
+    // ── Odds API ─────────────────────────────────────────────────────────
+    [ObservableProperty]
+    private string _oddsApiKey = "";
+
+    [ObservableProperty]
+    private string _oddsQuotaLabel = "";
+
     // ── Compteurs ──────────────────────────────────────────────────────────
     public int TotalParis => Paris.Count;
     public int LiveCount  => Paris.Count(p => p.IsLive);

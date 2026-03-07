@@ -56,6 +56,7 @@ public class Pari
     public DateTime DateExtraction { get; set; } = DateTime.Now;
     public CashoutStats? FlashScoreStats { get; set; }
     public string? PromptGenere { get; set; }
+    public MatchOddsResult? OddsComparison { get; set; }
 
     // ── Helpers ────────────────────────────────────────────────────
     public string MatchLabel =>

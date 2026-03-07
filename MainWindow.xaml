@@ -71,7 +71,18 @@
                       Style="{StaticResource BtnPrimary}"
                       Click="BtnScanValue_Click"
                       FontSize="12" Padding="12,5"
+                      Margin="0,0,8,0"
                       ToolTip="Génère un prompt comparant tes cotes avec Pinnacle, Betclic, Winamax, Bet365 pour détecter les value bets"/>
+              <Button Content="📊 Scan Odds API"
+                      Style="{StaticResource BtnPrimary}"
+                      Click="BtnScanOddsApi_Click"
+                      FontSize="12" Padding="12,5"
+                      Margin="0,0,8,0"
+                      ToolTip="Récupère les cotes réelles via The Odds API et compare avec tes cotes ParionsSport"/>
+              <TextBlock Text="{Binding OddsQuotaLabel, Mode=OneWay}"
+                         VerticalAlignment="Center" FontSize="10"
+                         Foreground="{StaticResource MutedBrush}"
+                         Margin="4,0,0,0"/>
             </StackPanel>
           </Border>
 

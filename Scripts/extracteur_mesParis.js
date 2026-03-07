@@ -273,9 +273,189 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
+    //  MODE 3 — Page détail match : marchés question (buteur, essai…)
+    // ══════════════════════════════════════════════════════════════════
+    function extracterMarchesQuestion() {
+        // Sélecteurs pour les blocs de marché dans une page de détail de match
+        const MARKET_SELECTORS = [
+            'psel-market',
+            'psel-market-group',
+            '[class*="market-group"]',
+            '[class*="market-container"]',
+            '.psel-markets__item',
+            '[class*="markets__item"]',
+        ];
+
+        let markets = [];
+        for (const s of MARKET_SELECTORS) {
+            const found = document.querySelectorAll(s);
+            if (found.length > 0) { markets = [...found]; break; }
+        }
+
+        // Fallback : chercher n'importe quel conteneur qui a des psel-outcome dedans
+        if (markets.length === 0) {
+            const allOutcomes = document.querySelectorAll('psel-outcome');
+            if (allOutcomes.length === 0) return null;
+
+            // Remonter aux parents contenant des groupes d'outcomes
+            const parentSet = new Set();
+            allOutcomes.forEach(o => {
+                let p = o.parentElement;
+                // Remonter de 1 à 3 niveaux pour trouver le conteneur de marché
+                for (let i = 0; i < 3 && p; i++) {
+                    if (p.querySelectorAll('psel-outcome').length >= 2) {
+                        parentSet.add(p);
+                        break;
+                    }
+                    p = p.parentElement;
+                }
+            });
+            markets = [...parentSet];
+        }
+
+        if (markets.length === 0) return null;
+
+        // Récupérer le contexte global du match (équipes, sport, heure)
+        const TITLE_SELECTORS = [
+            '.psel-event-header__title',
+            '.psel-breadcrumb',
+            'h1', '[class*="event-header"]',
+            '[class*="match-header"]',
+            '.psel-opponent__name',
+        ];
+        let equipes = [];
+        const opps = document.querySelectorAll('.psel-opponent__name');
+        if (opps.length >= 2) {
+            equipes = [opps[0].textContent.trim(), opps[1].textContent.trim()];
+        } else {
+            // Essayer depuis le titre de la page ou le breadcrumb
+            for (const sel of TITLE_SELECTORS) {
+                const el = document.querySelector(sel);
+                if (el) {
+                    const txt = el.textContent.trim();
+                    const m = txt.match(/(.+?)\s*[-–vs.]+\s*(.+)/);
+                    if (m) { equipes = [m[1].trim(), m[2].trim()]; break; }
+                }
+            }
+        }
+        if (equipes.length === 0) equipes = ['Équipe A', 'Équipe B'];
+
+        const sport = matchSportStr(window.location.pathname) || detecterSport(document.body) || 'Autre';
+        const isLive = !!document.querySelector('psel-live-timer, [class*="live-timer"], [class*="liveTimer"]');
+        const score = document.querySelector('.psel-scoreboard__score, .psel-score--current, [class*="score--"]')
+            ?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+        const minuteOuHeure = document.querySelector('time.psel-timer, .psel-timer')
+            ?.textContent.trim() ?? 'N/A';
+
+        const paris = [];
+        let idx = 0;
+
+        markets.forEach(mkt => {
+            try {
+                // Titre du marché (= la question)
+                const TITLE_MKT_SEL = [
+                    '.psel-market__title',
+                    '.psel-market-group__title',
+                    '[class*="market__title"]',
+                    '[class*="market-title"]',
+                    'h2', 'h3', 'h4',
+                    '.psel-text-bold',
+                ];
+                let marcheTitle = '';
+                for (const sel of TITLE_MKT_SEL) {
+                    const el = mkt.querySelector(sel);
+                    if (el) {
+                        const t = el.textContent.replace(/\s+/g, ' ').trim();
+                        if (t.length > 2 && t.length < 200) { marcheTitle = t; break; }
+                    }
+                }
+                if (!marcheTitle) return; // Pas de titre = pas un marché exploitable
+
+                // Outcomes (labels + cotes)
+                const outcomes = Array.from(mkt.querySelectorAll('psel-outcome'));
+                if (outcomes.length === 0) return;
+
+                const labels = outcomes
+                    .map(o => {
+                        const lbl = o.querySelector('.psel-outcome__label');
+                        return lbl ? lbl.textContent.trim() : '';
+                    })
+                    .filter(Boolean);
+                const cotes = outcomes
+                    .map(o => {
+                        const d = o.querySelector('.psel-outcome__data');
+                        return d ? d.textContent.trim() : '';
+                    })
+                    .filter(Boolean);
+
+                if (labels.length === 0 || cotes.length === 0) return;
+
+                // Pourcentages (si disponibles)
+                const PCT_SELECTORS = [
+                    '.psel-outcome__popularity',
+                    '.psel-outcome__percentage',
+                    '[class*="outcome__popularity"]',
+                    '[class*="outcome__percentage"]',
+                ];
+                const pourcentages = outcomes.map(o => {
+                    for (const sel of PCT_SELECTORS) {
+                        const el2 = o.querySelector(sel);
+                        if (el2) { const t = el2.textContent.trim(); if (t) return t; }
+                    }
+                    const all = o.querySelectorAll('*');
+                    for (const node of all) {
+                        const t = node.textContent.trim();
+                        if (/^\d{1,3}\s*%$/.test(t)) return t;
+                    }
+                    return '';
+                }).filter(Boolean);
+
+                paris.push({
+                    type: 'Question',
+                    sport,
+                    equipes,
+                    score,
+                    isLive,
+                    minuteOuHeure,
+                    marche: marcheTitle,
+                    selection: labels.join(' / ') || 'N/A',
+                    cote: cotes.join(' / ') || 'N/A',
+                    pourcentagesParis: pourcentages,
+                    coteTotale: 'N/A',
+                    mise: '',
+                    gainsPotentiels: '',
+                    cashout: null,
+                    numeroPari: `q-${++idx}`,
+                    datePari: 'N/A',
+                });
+            } catch (err) { log('Erreur marché question: ' + err.message); }
+        });
+
+        return paris.length > 0 ? paris : null;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  MODE 4 — Dump diagnostic HTML (pour debug)
+    // ══════════════════════════════════════════════════════════════════
+    function dumpPageStructure() {
+        const tags = new Set();
+        document.querySelectorAll('*').forEach(el => {
+            const tag = el.tagName.toLowerCase();
+            if (tag.startsWith('psel-')) tags.add(tag);
+        });
+        log('📋 Éléments psel-* trouvés sur cette page : ' + [...tags].sort().join(', '));
+
+        // Compter les outcomes et markets
+        const nbOutcomes = document.querySelectorAll('psel-outcome').length;
+        const nbMarkets = document.querySelectorAll('psel-market, psel-market-group, [class*="market"]').length;
+        log(`📊 psel-outcome: ${nbOutcomes} | markets: ${nbMarkets}`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
     //  Point d'entrée
     // ══════════════════════════════════════════════════════════════════
     log('🔍 Détection du type de page…');
+    dumpPageStructure();
 
     const paris = extracterMesParis();
     if (paris !== null) {
@@ -285,9 +465,15 @@
     }
 
     const cotes = extracterPageCotes();
-    if (cotes !== null) {
-        log(`✅ Mode "Page de cotes" — ${cotes.length} entrées trouvées`);
-        sendParis(cotes);
+    const questions = extracterMarchesQuestion();
+
+    // Combiner cotes classiques + marchés question si les deux existent
+    if (cotes !== null || questions !== null) {
+        const combined = [...(cotes || []), ...(questions || [])];
+        const nbCotes = cotes ? cotes.length : 0;
+        const nbQ = questions ? questions.length : 0;
+        log(`✅ ${nbCotes} cotes classiques + ${nbQ} marchés question — ${combined.length} total`);
+        sendParis(combined);
         return;
     }
 

@@ -151,17 +151,18 @@ public static class PromptBuilder
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static IEnumerable<(string title, string file)> ProtocolFiles() =>
-    [
-        ("CASHOUT FOOTBALL",        "cashout_foot.md"),
-        ("CASHOUT TENNIS",          "cashout_tennis.md"),
-        ("CASHOUT BASKETBALL",      "cashout_basketball.md"),
-        ("CASHOUT AUTRES SPORTS",   "cashout_autres.md"),
-        ("VALUE BET FOOTBALL",      "foot.md"),
-        ("VALUE BET TENNIS",        "tennis.md"),
-        ("VALUE BET BASKETBALL",    "basketball.md"),
-        ("VALUE BET AUTRES SPORTS", "Autres.md"),
-        ("SCAN VALUE MULTI-PARIS",  "value_scan.md"),
-    ];
+        new (string, string)[]
+        {
+            ("CASHOUT FOOTBALL",        "cashout_foot.md"),
+            ("CASHOUT TENNIS",          "cashout_tennis.md"),
+            ("CASHOUT BASKETBALL",      "cashout_basketball.md"),
+            ("CASHOUT AUTRES SPORTS",   "cashout_autres.md"),
+            ("VALUE BET FOOTBALL",      "foot.md"),
+            ("VALUE BET TENNIS",        "tennis.md"),
+            ("VALUE BET BASKETBALL",    "basketball.md"),
+            ("VALUE BET AUTRES SPORTS", "Autres.md"),
+            ("SCAN VALUE MULTI-PARIS",  "value_scan.md"),
+        };
 
     private static string LoadTemplate(string fileName)
     {

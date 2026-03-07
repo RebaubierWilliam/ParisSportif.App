@@ -34,7 +34,6 @@ public static class PromptBuilder
             $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
             $"Marché    : {p.Marche} | {p.NumeroPari} | {p.DatePari}",
         };
-        AddRepartitionLine(lines, p);
 
         lines.AddRange(McpScrapingLines(p, isLive: true));
         lines.Add("");
@@ -52,7 +51,6 @@ public static class PromptBuilder
             $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
             $"Marché    : {p.Marche} | {p.NumeroPari}",
         };
-        AddRepartitionLine(lines, p);
 
         lines.AddRange(McpScrapingLines(p, isLive: false));
         lines.Add("");
@@ -124,7 +122,6 @@ public static class PromptBuilder
         };
         lines.Add(p.Score is not null ? $"Score  : {p.Score}" : "Avant le coup d'envoi");
         lines.Add($"Minute : {p.MinuteOuHeure}");
-        AddRepartitionLine(lines, p);
         lines.Add("");
         lines.Add(sep);
         lines.Add("UTILISE LE PROTOCOLE CASHOUT CI-DESSOUS POUR CE PARI");
@@ -150,7 +147,6 @@ public static class PromptBuilder
             $"Mise prévue: {p.Mise}",
             $"Date       : {p.DatePari}",
         };
-        AddRepartitionLine(lines, p);
         lines.AddRange(new[] { "", sep, "UTILISE LE PROTOCOLE VALUE BET CI-DESSOUS", sep });
 
         var template = LoadValueBetTemplate(p.Sport);

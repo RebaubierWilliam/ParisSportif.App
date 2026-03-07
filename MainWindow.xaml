@@ -184,13 +184,43 @@
 
               <!-- % Parieurs -->
               <DataGridTextColumn Header="% Parieurs" Width="160"
-                                  Binding="{Binding RepartitionLabel}">
+                                  Binding="{Binding RepartitionLabel}"
+                                  SortMemberPath="AnomalieMax">
                 <DataGridTextColumn.ElementStyle>
                   <Style TargetType="TextBlock">
                     <Setter Property="VerticalAlignment" Value="Center"/>
                     <Setter Property="FontSize" Value="12"/>
                     <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
                     <Setter Property="TextWrapping" Value="Wrap"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Indicateur anomalie cote/parieurs -->
+              <DataGridTextColumn Header="⚡ Anomalie" Width="130"
+                                  Binding="{Binding AnomalieLabelMax}"
+                                  SortMemberPath="AnomalieMax"
+                                  CanUserSort="True">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                  </Style>
+                </DataGridTextColumn.ElementStyle>
+              </DataGridTextColumn>
+
+              <!-- Détail anomalie toutes issues -->
+              <DataGridTextColumn Header="Détail issues" Width="160"
+                                  Binding="{Binding AnomalieDetail}"
+                                  SortMemberPath="AnomalieMax">
+                <DataGridTextColumn.ElementStyle>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                    <Setter Property="FontFamily" Value="Consolas"/>
                   </Style>
                 </DataGridTextColumn.ElementStyle>
               </DataGridTextColumn>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace ParisSportif.Models;
@@ -81,6 +82,83 @@ public class Pari
             return string.Join(" / ", parts);
         }
     }
+
+    // ── Indicateur d'anomalie : % parieurs vs probabilité implicite bookmaker ──
+
+    /// <summary>
+    /// Pour chaque issue : diff = % parieurs − (100 / cote).
+    /// Un grand écart positif = le public surparie cette issue vs ce que le book implique.
+    /// Un grand écart négatif = le public sous-parie = potentiel signal de valeur.
+    /// </summary>
+    public record AnomalieIssue(string Sel, double Cote, double BettorPct, double ImpliedPct, double Diff);
+
+    public List<AnomalieIssue> Anomalies
+    {
+        get
+        {
+            if (PourcentagesParis == null || PourcentagesParis.Count == 0)
+                return new List<AnomalieIssue>();
+
+            var coteParts = (Cote ?? "").Split('/').Select(s => s.Trim()).ToList();
+            var selParts  = (Selection ?? "").Split('/').Select(s => s.Trim()).ToList();
+            var result    = new List<AnomalieIssue>();
+
+            for (int i = 0; i < PourcentagesParis.Count; i++)
+            {
+                var bPct    = ParsePct(PourcentagesParis[i]);
+                var cote    = i < coteParts.Count ? ParseCote(coteParts[i]) : 0.0;
+                if (cote <= 0 || bPct <= 0) continue;
+                var implied = 100.0 / cote;
+                var diff    = bPct - implied;
+                var sel     = i < selParts.Count ? selParts[i] : (i + 1).ToString();
+                result.Add(new AnomalieIssue(sel, cote, bPct, implied, diff));
+            }
+            return result;
+        }
+    }
+
+    /// <summary>Ecart max absolu — sert au tri de la colonne.</summary>
+    public double AnomalieMax =>
+        Anomalies.Any() ? Anomalies.Max(a => Math.Abs(a.Diff)) : -1.0;
+
+    /// <summary>Label affiché dans le DataGrid, ex: "🔴 +28% [1]"</summary>
+    public string AnomalieLabelMax
+    {
+        get
+        {
+            var list = Anomalies;
+            if (!list.Any()) return "-";
+
+            var top  = list.OrderByDescending(a => Math.Abs(a.Diff)).First();
+            var abs  = Math.Abs(top.Diff);
+            if (abs < 5) return "-";
+
+            var emoji = abs >= 20 ? "🔴" : abs >= 12 ? "🟠" : "🟡";
+            var sign  = top.Diff >= 0 ? "+" : "";
+            return $"{emoji} {sign}{top.Diff:F0}%  [{top.Sel}]";
+        }
+    }
+
+    /// <summary>Détail de toutes les issues, ex: "1: +28%  N: -5%  2: -18%"</summary>
+    public string AnomalieDetail
+    {
+        get
+        {
+            var list = Anomalies;
+            if (!list.Any()) return "-";
+            return string.Join("  ", list.Select(a =>
+            {
+                var sign = a.Diff >= 0 ? "+" : "";
+                return $"{a.Sel}: {sign}{a.Diff:F0}%";
+            }));
+        }
+    }
+
+    private static double ParseCote(string s) =>
+        double.TryParse(s.Replace(",", "."), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && v > 1 ? v : 0;
+
+    private static double ParsePct(string s) =>
+        double.TryParse(s.Replace("%", "").Replace(",", ".").Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0;
 
     public string SportEmoji => Sport switch
     {

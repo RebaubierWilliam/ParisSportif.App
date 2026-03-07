@@ -1,241 +1,179 @@
 using System.IO;
+using System.Text;
 using ParisSportif.Models;
 
 namespace ParisSportif.Services;
 
 /// <summary>
-/// Construit le prompt cashout : données du pari + protocole sport-spécifique.
+/// Génère des prompts compacts (user message) + un system prompt global pour Projet Claude.
+/// Architecture token-économe : protocoles dans le system prompt (caché), données dans le message.
 /// </summary>
 public static class PromptBuilder
 {
-    private static readonly string Sep = new('═', 52);
-
-    /// <summary>
-    /// Point d'entrée unique : route vers cashout (live) ou value bet (à venir).
-    /// </summary>
     public static string Build(Pari p) =>
         p.IsLive ? BuildCashoutPrompt(p) : BuildValueBetPrompt(p);
 
-    /// <summary>
-    /// Génère un prompt de scan value pour une liste de paris.
-    /// Compare les cotes ParionsSport avec les gros bookmakers et détecte la value.
-    /// </summary>
-    public static string BuildValueScanPrompt(IEnumerable<Pari> paris)
-    {
-        // Priorise les paris à venir, puis live — limite à 15 pour que le LLM puisse traiter
-        const int MaxParis = 15;
-        var list = paris
-            .OrderBy(p => p.IsLive ? 1 : 0)   // à venir en premier
-            .Take(MaxParis)
-            .ToList();
-
-        var totalInput = paris.Count();
-        var truncMsg = totalInput > MaxParis
-            ? $" (limité à {MaxParis}/{totalInput} — à-venir en priorité)"
-            : "";
-
-        var lines = new List<string>
-        {
-            "SCAN VALUE — COMPARAISON MULTI-BOOKMAKERS",
-            Sep,
-            "",
-            $"📋 {list.Count} PARIS À ANALYSER{truncMsg} — {DateTime.Now:dd/MM/yyyy HH:mm}",
-            "",
-        };
-
-        // Tableau récapitulatif des paris
-        lines.Add("┌────┬──────────────────────────────────┬───────────────────────┬──────────┬────────┬──────┐");
-        lines.Add("│ #  │ Match                            │ Sélection             │ Marché   │ Cote   │ Mise │");
-        lines.Add("├────┼──────────────────────────────────┼───────────────────────┼──────────┼────────┼──────┤");
-
-        int i = 1;
-        foreach (var p in list)
-        {
-            var match    = Trunc(p.MatchLabel, 32);
-            var sel      = Trunc(p.Selection,  21);
-            var marche   = Trunc(p.Marche,      8);
-            var cote     = Trunc(p.Cote,         6);
-            var mise     = Trunc(p.Mise,          4);
-            var live     = p.IsLive ? " 🔴" : "";
-            lines.Add($"│ {i,-2} │ {match,-32} │ {sel,-21} │ {marche,-8} │ {cote,-6} │ {mise,-4} │{live}");
-            i++;
-        }
-
-        lines.Add("└────┴──────────────────────────────────┴───────────────────────┴──────────┴────────┴──────┘");
-        lines.Add("");
-
-        // Détail de chaque pari + requête de recherche pré-générée
-        lines.Add("DÉTAIL DES PARIS + REQUÊTES DE RECHERCHE");
-        lines.Add(Sep);
-        i = 1;
-        foreach (var p in list)
-        {
-            lines.Add($"");
-            lines.Add($"#{i} — {p.MatchLabel}{(p.IsLive ? " 🔴 LIVE" : "")}");
-            lines.Add($"   Sport      : {p.Sport}");
-            lines.Add($"   Sélection  : {p.Selection}");
-            lines.Add($"   Marché     : {p.Marche}");
-            lines.Add($"   Cote PS    : {p.Cote}");
-            lines.Add($"   Mise       : {p.Mise}  |  Gains potentiels : {p.GainsPotentiels}");
-            if (p.IsLive && p.Score != null)
-                lines.Add($"   Score live : {p.Score} ({p.MinuteOuHeure})");
-            lines.Add($"   🔍 Recherche : {BuildSearchQuery(p)}");
-            i++;
-        }
-
-        lines.Add("");
-        lines.Add(Sep);
-        lines.Add("UTILISE LE PROTOCOLE SCAN VALUE CI-DESSOUS POUR TOUS CES PARIS");
-        lines.Add(Sep);
-
-        var template = LoadScanTemplate();
-        return string.Join("\n", lines) + "\n\n" + template;
-    }
+    // ── Prompts compacts — user message ──────────────────────────────────────
 
     public static string BuildCashoutPrompt(Pari p)
     {
-        var context  = BuildContext(p);
-        var template = LoadCashoutTemplate(p.Sport);
-        return context + "\n\n" + template;
+        var co    = p.Cashout ?? "N/A";
+        var score = p.Score is not null ? $"Score {p.Score} | " : "";
+
+        var lines = new List<string>
+        {
+            $"CASHOUT — {p.Sport} 🔴 {p.MinuteOuHeure}",
+            $"Match     : {p.MatchLabel} | {score}Cash-out : {co}",
+            $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
+            $"Marché    : {p.Marche} | {p.NumeroPari} | {p.DatePari}",
+        };
+
+        lines.AddRange(McpScrapingLines(p, isLive: true));
+        lines.Add("");
+        lines.Add($"→ Protocole cashout {p.Sport.ToLower()}.");
+
+        return string.Join("\n", lines);
     }
 
     public static string BuildValueBetPrompt(Pari p)
     {
         var lines = new List<string>
         {
-            "ANALYSE VALUE BET — PARI À VENIR",
-            Sep,
-            "",
-            "📋 PARI À ANALYSER",
-            $"Match      : {p.MatchLabel}",
-            $"Sport      : {p.Sport}",
-            $"Sélection  : {p.Selection} @ cote {p.Cote}",
-            $"Marché     : {p.Marche}",
-            $"Mise prévue: {p.Mise}",
-            $"Date       : {p.DatePari}",
-            "",
-            Sep,
-            "UTILISE LE PROTOCOLE VALUE BET CI-DESSOUS",
-            Sep,
+            $"VALUE BET — {p.Sport}",
+            $"Match     : {p.MatchLabel} | {p.DatePari} {p.MinuteOuHeure}",
+            $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
+            $"Marché    : {p.Marche} | {p.NumeroPari}",
         };
 
-        var template = LoadValueBetTemplate(p.Sport);
-        return string.Join("\n", lines) + "\n\n" + template;
-    }
-
-    // ── Contexte du pari injecté en tête du prompt ──────────────────────────
-    private static string BuildContext(Pari p)
-    {
-        var co    = p.Cashout ?? "N/A";
-        var lines = new List<string>
-        {
-            "ANALYSE CASHOUT EN TEMPS RÉEL",
-            Sep,
-            "",
-            "📋 MON PARI",
-            $"Match           : {p.MatchLabel}",
-            $"Sport           : {p.Sport}",
-            $"Sélection       : {p.Selection} @ cote {p.Cote}",
-            $"Mise initiale   : {p.Mise}",
-            $"Gains potentiels: {p.GainsPotentiels}",
-            $"Cash Out actuel : {co}",
-            $"{p.NumeroPari}  |  {p.DatePari}",
-            $"Marché          : {p.Marche}",
-            "",
-            "📊 SITUATION EN DIRECT",
-        };
-
-        lines.Add(p.Score is not null ? $"Score  : {p.Score}" : "Avant le coup d'envoi");
-        lines.Add($"Minute : {p.MinuteOuHeure}");
-
+        lines.AddRange(McpScrapingLines(p, isLive: false));
         lines.Add("");
-        lines.Add(Sep);
-        lines.Add("UTILISE LE PROTOCOLE CASHOUT CI-DESSOUS POUR CE PARI");
-        lines.Add(Sep);
+        lines.Add($"→ Protocole value bet {p.Sport.ToLower()}.");
 
         return string.Join("\n", lines);
     }
 
-    // ── Chargement des templates ─────────────────────────────────────────────
-    private static string LoadValueBetTemplate(string sport)
+    public static string BuildValueScanPrompt(IEnumerable<Pari> paris)
     {
-        var fileName = (sport ?? "").ToLowerInvariant() switch
+        const int MaxParis = 15;
+        var list = paris.OrderBy(p => p.IsLive ? 1 : 0).Take(MaxParis).ToList();
+
+        var lines = new List<string>
         {
-            "football" or "foot" or "soccer" => "foot.md",
-            "tennis"                          => "tennis.md",
-            "basketball" or "basket"          => "basketball.md",
-            _                                 => "Autres.md",
+            $"SCAN VALUE — {list.Count} paris — {DateTime.Now:dd/MM HH:mm}",
+            "",
+            $"{"#",-2}  {"Match",-32}  {"Sport",-12}  {"Sélection",-22}  {"Cote",-6}  Mise",
+            new string('─', 85),
         };
 
+        int i = 1;
+        foreach (var p in list)
+        {
+            var live = p.IsLive ? " 🔴" : "";
+            lines.Add($"{i,-2}  {Trunc(p.MatchLabel, 32),-32}  {Trunc(p.Sport, 12),-12}  {Trunc(p.Selection, 22),-22}  {p.Cote,-6}  {p.Mise}{live}");
+            i++;
+        }
+
+        lines.Add("");
+        lines.Add("🔍 MCP web-scraper — cotes comparées :");
+        i = 1;
+        foreach (var p in list)
+        {
+            var q = Encode(p.MatchLabel.Replace(" vs ", " "));
+            lines.Add($"• #{i} {p.MatchLabel} → fetch_page(\"https://www.oddsportal.com/search/results/?q={q}\") puis extract_table()");
+            i++;
+        }
+
+        lines.Add("");
+        lines.Add("→ Protocole scan value.");
+
+        return string.Join("\n", lines);
+    }
+
+    // ── System prompt global — à coller dans les instructions du Projet Claude ─
+
+    public static string BuildGlobalSystemPrompt()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("# ASSISTANT PARIS SPORTIFS");
+        sb.AppendLine("## Outils disponibles : MCP web-scraper (fetch_page, extract_text, extract_table)");
+        sb.AppendLine("## Règle absolue : scrape les données AVANT d'analyser. Ne jamais inventer de statistiques.");
+        sb.AppendLine();
+
+        foreach (var (title, file) in ProtocolFiles())
+        {
+            var content = LoadTemplate(file);
+            if (!string.IsNullOrEmpty(content))
+            {
+                sb.AppendLine("---");
+                sb.AppendLine($"## {title}");
+                sb.AppendLine(content);
+                sb.AppendLine();
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    // ── Instructions MCP scraper (injectées dans chaque message) ─────────────
+
+    private static IEnumerable<string> McpScrapingLines(Pari p, bool isLive)
+    {
+        var q     = Encode(p.MatchLabel);
+        var sport = (p.Sport ?? "").ToLowerInvariant();
+
+        yield return "";
+        yield return "🔍 MCP web-scraper :";
+
+        // Sofascore — toujours pertinent
+        yield return $"• fetch_page(\"https://www.sofascore.com/search/#q={q}\")";
+        yield return isLive
+            ? "  → score live, xG, tirs, possession, momentum"
+            : sport is "tennis"
+                ? "  → forme récente, H2H, stats par set, ranking"
+                : "  → forme récente (5 derniers), H2H, stats attaque/défense";
+
+        // Fotmob pour momentum foot en live
+        if (isLive && sport is "football" or "foot" or "soccer")
+        {
+            yield return $"• fetch_page(\"https://www.fotmob.com/search?term={q}\")";
+            yield return "  → momentum graph, xG comparé";
+        }
+
+        // Oddsportal pour cotes pré-match
+        if (!isLive)
+        {
+            var qOdds = Encode(p.MatchLabel.Replace(" vs ", " "));
+            yield return $"• fetch_page(\"https://www.oddsportal.com/search/results/?q={qOdds}\")";
+            yield return "  → cotes Pinnacle / Betclic / Winamax / Bet365 → extract_table()";
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static IEnumerable<(string title, string file)> ProtocolFiles() =>
+    [
+        ("CASHOUT FOOTBALL",        "cashout_foot.md"),
+        ("CASHOUT TENNIS",          "cashout_tennis.md"),
+        ("CASHOUT BASKETBALL",      "cashout_basketball.md"),
+        ("CASHOUT AUTRES SPORTS",   "cashout_autres.md"),
+        ("VALUE BET FOOTBALL",      "foot.md"),
+        ("VALUE BET TENNIS",        "tennis.md"),
+        ("VALUE BET BASKETBALL",    "basketball.md"),
+        ("VALUE BET AUTRES SPORTS", "Autres.md"),
+        ("SCAN VALUE MULTI-PARIS",  "value_scan.md"),
+    ];
+
+    private static string LoadTemplate(string fileName)
+    {
         var path = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
             "Resources", "Prompts", fileName);
-
-        if (File.Exists(path))
-            return File.ReadAllText(path, System.Text.Encoding.UTF8);
-
-        var fallback = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Resources", "Prompts", "Autres.md");
-
-        return File.Exists(fallback)
-            ? File.ReadAllText(fallback, System.Text.Encoding.UTF8)
-            : "";
-    }
-
-    private static string LoadScanTemplate()
-    {
-        var path = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Resources", "Prompts", "value_scan.md");
-
         return File.Exists(path)
-            ? File.ReadAllText(path, System.Text.Encoding.UTF8)
+            ? File.ReadAllText(path, Encoding.UTF8)
             : "";
     }
 
-    private static string LoadCashoutTemplate(string sport)
-    {
-        var fileName = (sport ?? "").ToLowerInvariant() switch
-        {
-            "football" or "foot" or "soccer" => "cashout_foot.md",
-            "tennis"                          => "cashout_tennis.md",
-            "basketball" or "basket"          => "cashout_basketball.md",
-            _                                 => "cashout_autres.md",
-        };
-
-        var path = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Resources", "Prompts", fileName);
-
-        if (File.Exists(path))
-            return File.ReadAllText(path, System.Text.Encoding.UTF8);
-
-        // Fallback générique
-        var fallback = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Resources", "Prompts", "cashout_autres.md");
-
-        return File.Exists(fallback)
-            ? File.ReadAllText(fallback, System.Text.Encoding.UTF8)
-            : "";
-    }
-
-    private static string BuildSearchQuery(Pari p)
-    {
-        var match = p.MatchLabel;
-        return (p.Sport ?? "").ToLowerInvariant() switch
-        {
-            "football" or "foot" or "soccer"
-                => $"\"{match}\" odds Pinnacle Bet365 Betclic site:oddsportal.com OR site:oddspedia.com",
-            "tennis"
-                => $"\"{match}\" tennis odds Pinnacle comparison",
-            "basketball" or "basket"
-                => $"\"{match}\" basketball odds Pinnacle Bet365",
-            _
-                => $"\"{match}\" odds Pinnacle Bet365 comparison",
-        };
-    }
+    private static string Encode(string s) => Uri.EscapeDataString(s);
 
     private static string Trunc(string s, int max) =>
         s.Length <= max ? s : s[..max];

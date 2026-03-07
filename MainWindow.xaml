@@ -73,6 +73,12 @@
                       FontSize="12" Padding="12,5"
                       Margin="0,0,8,0"
                       ToolTip="Génère un prompt comparant tes cotes avec Pinnacle, Betclic, Winamax, Bet365 pour détecter les value bets"/>
+              <Button Content="📋 Instructions Projet"
+                      Style="{StaticResource BtnSecondary}"
+                      Click="BtnSystemPrompt_Click"
+                      FontSize="12" Padding="12,5"
+                      Margin="0,0,8,0"
+                      ToolTip="Copie les protocoles d'analyse — à coller dans les instructions de ton Projet claude.ai (system prompt caché = économie de tokens)"/>
             </StackPanel>
           </Border>
 

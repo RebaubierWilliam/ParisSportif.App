@@ -89,6 +89,14 @@ public partial class MainWindow : Window
     private async void BtnExtraire_Click(object sender, RoutedEventArgs e)
         => await _extractionPS.InjectExtracteurAsync();
 
+    // ── Instructions Projet : system prompt global à coller dans claude.ai ────
+    private void BtnSystemPrompt_Click(object sender, RoutedEventArgs e)
+    {
+        var prompt = PromptBuilder.BuildGlobalSystemPrompt();
+        Clipboard.SetText(prompt);
+        _vm.Log("📋 Instructions Projet copiées — colle dans les instructions de ton Projet claude.ai");
+    }
+
     // ── Scan Value : génère un prompt multi-paris pour comparaison bookmakers ─
     private void BtnScanValue_Click(object sender, RoutedEventArgs e)
     {

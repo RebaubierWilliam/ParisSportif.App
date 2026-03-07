@@ -193,16 +193,24 @@
               </DataGridTextColumn>
 
               <!-- Action -->
-              <DataGridTemplateColumn Header="Action" Width="110">
+              <DataGridTemplateColumn Header="Action" Width="210">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="6,0"
                                 VerticalAlignment="Center">
-                      <Button Content="📋 Prompt"
-                              Style="{StaticResource BtnSecondary}"
-                              FontSize="12" Padding="10,5"
+                      <Button Content="📋 MCP"
+                              Style="{StaticResource BtnPrimary}"
+                              FontSize="12" Padding="8,5"
                               Tag="{Binding}"
-                              Click="BtnPrompt_Click"/>
+                              Click="BtnPrompt_Click"
+                              ToolTip="Prompt compact — données du pari + instructions MCP web-scraper (pour Projet Claude)"/>
+                      <Button Content="📄 Complet"
+                              Style="{StaticResource BtnSecondary}"
+                              FontSize="12" Padding="8,5"
+                              Margin="6,0,0,0"
+                              Tag="{Binding}"
+                              Click="BtnPromptComplet_Click"
+                              ToolTip="Prompt complet autonome — données + protocole intégré (sans Projet Claude)"/>
                     </StackPanel>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>

@@ -199,23 +199,34 @@ public partial class MainWindow : Window
         _vm.Log($"🔍 Scan Value généré pour {paris.Count} paris — copié dans le presse-papier.");
     }
 
-    // ── Bouton Prompt : crée un onglet Analyse dédié par match ─────────────
+    // ── Bouton Prompt MCP : prompt compact avec instructions web-scraper ──────
     private void BtnPrompt_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
         _vm.SelectedPari = pari;
+        OpenPromptTab(pari, PromptBuilder.Build(pari), pari.NumeroPari, $"📋 {pari.MatchLabel}");
+        _vm.Log($"📋 Prompt MCP généré pour {pari.MatchLabel} — copié dans le presse-papier");
+    }
 
-        // Si l'onglet existe déjà pour ce match, l'activer
+    // ── Bouton Prompt Complet : prompt autonome avec protocole intégré ────────
+    private void BtnPromptComplet_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
+        _vm.SelectedPari = pari;
+        OpenPromptTab(pari, PromptBuilder.BuildFull(pari), pari.NumeroPari + "_full", $"📄 {pari.MatchLabel}");
+        _vm.Log($"📄 Prompt complet généré pour {pari.MatchLabel} — copié dans le presse-papier");
+    }
+
+    // ── Création/activation d'un onglet prompt ────────────────────────────────
+    private void OpenPromptTab(Pari pari, string prompt, string tag, string headerText)
+    {
         var existing = MainTabs.Items
             .OfType<TabItem>()
-            .FirstOrDefault(t => t.Tag is string id && id == pari.NumeroPari);
+            .FirstOrDefault(t => t.Tag is string id && id == tag);
         if (existing != null) { MainTabs.SelectedItem = existing; return; }
 
-        // Générer le prompt
-        var prompt = PromptBuilder.Build(pari);
         Clipboard.SetText(prompt);
 
-        // ── Contenu de l'onglet ───────────────────────────────────────────
         var textBox = new TextBox
         {
             Text              = prompt,
@@ -239,11 +250,7 @@ public partial class MainWindow : Window
         };
         copyBtn.Click += (_, _) => { Clipboard.SetText(textBox.Text); _vm.Log("📋 Prompt copié."); };
 
-        var toolbar = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Margin      = new Thickness(10, 6, 10, 6),
-        };
+        var toolbar = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 6, 10, 6) };
         toolbar.Children.Add(copyBtn);
 
         var content = new Grid();
@@ -254,39 +261,27 @@ public partial class MainWindow : Window
         content.Children.Add(toolbar);
         content.Children.Add(textBox);
 
-        // ── En-tête avec bouton ✕ ─────────────────────────────────────────
         TabItem tabItem = null!;
-
         var closeBtn = new Button
         {
-            Content         = "✕",
-            FontSize        = 10,
-            Width           = 18,
-            Height          = 18,
-            Padding         = new Thickness(0),
-            Margin          = new Thickness(8, 0, 0, 0),
-            Background      = Brushes.Transparent,
-            BorderThickness = new Thickness(0),
-            Cursor          = Cursors.Hand,
-            VerticalAlignment = VerticalAlignment.Center,
+            Content = "✕", FontSize = 10, Width = 18, Height = 18,
+            Padding = new Thickness(0), Margin = new Thickness(8, 0, 0, 0),
+            Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center,
         };
         closeBtn.Click += (_, _) => MainTabs.Items.Remove(tabItem);
 
         var header = new StackPanel { Orientation = Orientation.Horizontal };
         header.Children.Add(new TextBlock
         {
-            Text              = $"📋 {pari.MatchLabel}",
-            VerticalAlignment = VerticalAlignment.Center,
-            MaxWidth          = 220,
-            TextTrimming      = TextTrimming.CharacterEllipsis,
+            Text = headerText, VerticalAlignment = VerticalAlignment.Center,
+            MaxWidth = 220, TextTrimming = TextTrimming.CharacterEllipsis,
         });
         header.Children.Add(closeBtn);
 
-        tabItem = new TabItem { Header = header, Content = content, Tag = pari.NumeroPari };
+        tabItem = new TabItem { Header = header, Content = content, Tag = tag };
         MainTabs.Items.Add(tabItem);
         MainTabs.SelectedItem = tabItem;
-
-        _vm.Log($"📋 Prompt généré pour {pari.MatchLabel} — copié dans le presse-papier");
     }
 
     // ── DeepSeek : initialisation ──────────────────────────────────────────

@@ -10,8 +10,15 @@ namespace ParisSportif.Services;
 /// </summary>
 public static class PromptBuilder
 {
+    // ── Routage principal ─────────────────────────────────────────────────────
+
+    /// <summary>Prompt compact avec instructions MCP web-scraper (pour Projet Claude).</summary>
     public static string Build(Pari p) =>
         p.IsLive ? BuildCashoutPrompt(p) : BuildValueBetPrompt(p);
+
+    /// <summary>Prompt complet avec protocole intégré (autonome, sans Projet Claude).</summary>
+    public static string BuildFull(Pari p) =>
+        p.IsLive ? BuildFullCashout(p) : BuildFullValueBet(p);
 
     // ── Prompts compacts — user message ──────────────────────────────────────
 
@@ -87,6 +94,92 @@ public static class PromptBuilder
         lines.Add("→ Protocole scan value.");
 
         return string.Join("\n", lines);
+    }
+
+    // ── Prompts complets — protocole intégré (ancien format) ─────────────────
+
+    private static string BuildFullCashout(Pari p)
+    {
+        var sep = new string('═', 52);
+        var co  = p.Cashout ?? "N/A";
+
+        var lines = new List<string>
+        {
+            "ANALYSE CASHOUT EN TEMPS RÉEL",
+            sep,
+            "",
+            "📋 MON PARI",
+            $"Match           : {p.MatchLabel}",
+            $"Sport           : {p.Sport}",
+            $"Sélection       : {p.Selection} @ cote {p.Cote}",
+            $"Mise initiale   : {p.Mise}",
+            $"Gains potentiels: {p.GainsPotentiels}",
+            $"Cash Out actuel : {co}",
+            $"{p.NumeroPari}  |  {p.DatePari}",
+            $"Marché          : {p.Marche}",
+            "",
+            "📊 SITUATION EN DIRECT",
+        };
+        lines.Add(p.Score is not null ? $"Score  : {p.Score}" : "Avant le coup d'envoi");
+        lines.Add($"Minute : {p.MinuteOuHeure}");
+        lines.Add("");
+        lines.Add(sep);
+        lines.Add("UTILISE LE PROTOCOLE CASHOUT CI-DESSOUS POUR CE PARI");
+        lines.Add(sep);
+
+        var template = LoadCashoutTemplate(p.Sport);
+        return string.Join("\n", lines) + "\n\n" + template;
+    }
+
+    private static string BuildFullValueBet(Pari p)
+    {
+        var sep   = new string('═', 52);
+        var lines = new List<string>
+        {
+            "ANALYSE VALUE BET — PARI À VENIR",
+            sep,
+            "",
+            "📋 PARI À ANALYSER",
+            $"Match      : {p.MatchLabel}",
+            $"Sport      : {p.Sport}",
+            $"Sélection  : {p.Selection} @ cote {p.Cote}",
+            $"Marché     : {p.Marche}",
+            $"Mise prévue: {p.Mise}",
+            $"Date       : {p.DatePari}",
+            "",
+            sep,
+            "UTILISE LE PROTOCOLE VALUE BET CI-DESSOUS",
+            sep,
+        };
+
+        var template = LoadValueBetTemplate(p.Sport);
+        return string.Join("\n", lines) + "\n\n" + template;
+    }
+
+    private static string LoadCashoutTemplate(string sport)
+    {
+        var fileName = (sport ?? "").ToLowerInvariant() switch
+        {
+            "football" or "foot" or "soccer" => "cashout_foot.md",
+            "tennis"                          => "cashout_tennis.md",
+            "basketball" or "basket"          => "cashout_basketball.md",
+            _                                 => "cashout_autres.md",
+        };
+        var t = LoadTemplate(fileName);
+        return t.Length > 0 ? t : LoadTemplate("cashout_autres.md");
+    }
+
+    private static string LoadValueBetTemplate(string sport)
+    {
+        var fileName = (sport ?? "").ToLowerInvariant() switch
+        {
+            "football" or "foot" or "soccer" => "foot.md",
+            "tennis"                          => "tennis.md",
+            "basketball" or "basket"          => "basketball.md",
+            _                                 => "Autres.md",
+        };
+        var t = LoadTemplate(fileName);
+        return t.Length > 0 ? t : LoadTemplate("Autres.md");
     }
 
     // ── System prompt global — à coller dans les instructions du Projet Claude ─

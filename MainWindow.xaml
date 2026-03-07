@@ -82,14 +82,13 @@
             </StackPanel>
           </Border>
 
-          <!-- DataGrid grande hauteur de ligne -->
+          <!-- DataGrid — 8 colonnes visibles avec wrap multi-lignes -->
           <DataGrid Grid.Row="1"
                     x:Name="PariGrid"
                     ItemsSource="{Binding Paris}"
                     SelectedItem="{Binding SelectedPari}"
                     AutoGenerateColumns="False"
                     IsReadOnly="True"
-                    RowHeight="48"
                     GridLinesVisibility="Horizontal"
                     HeadersVisibility="Column"
                     SelectionMode="Single"
@@ -97,9 +96,10 @@
                     Background="White"
                     RowBackground="White"
                     AlternatingRowBackground="#FAFBFC"
-                    CanUserResizeRows="False"
+                    CanUserResizeRows="True"
+                    CanUserResizeColumns="True"
                     CanUserReorderColumns="False"
-                    FontSize="14">
+                    FontSize="13">
 
             <DataGrid.RowStyle>
               <Style TargetType="DataGridRow">
@@ -114,132 +114,136 @@
 
             <DataGrid.Columns>
 
-              <!-- Statut -->
-              <DataGridTextColumn Header="Statut" Width="90"
-                                  Binding="{Binding StatutLabel}">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
+              <!-- ① Sport : emoji + statut -->
+              <DataGridTemplateColumn Header="Sport" Width="72" CanUserSort="False">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Margin="4,6">
+                      <TextBlock Text="{Binding SportEmoji}" FontSize="22"
+                                 HorizontalAlignment="Center"/>
+                      <TextBlock Text="{Binding StatutLabel}" FontSize="10"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{StaticResource MutedBrush}"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
-              <!-- Sport -->
-              <DataGridTextColumn Header="Sport" Width="60"
-                                  Binding="{Binding SportEmoji}">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="HorizontalAlignment" Value="Center"/>
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="FontSize" Value="22"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
+              <!-- ② Date et Heure -->
+              <DataGridTemplateColumn Header="Date / Heure" Width="105" CanUserSort="False">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <StackPanel VerticalAlignment="Center" Margin="6,4">
+                      <TextBlock Text="{Binding DatePari}" FontSize="11"
+                                 TextWrapping="Wrap"
+                                 Foreground="{StaticResource MutedBrush}"/>
+                      <TextBlock Text="{Binding MinuteOuHeure}" FontSize="12"
+                                 FontWeight="SemiBold"
+                                 Foreground="{StaticResource TextBrush}"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
-              <!-- Match -->
-              <DataGridTextColumn Header="Match" Width="*"
-                                  Binding="{Binding MatchLabel}">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="FontSize" Value="15"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
+              <!-- ③ Match / Compétition / Sélection -->
+              <DataGridTemplateColumn Header="Match / Sélection" Width="*" CanUserSort="False">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <StackPanel VerticalAlignment="Center" Margin="8,4">
+                      <TextBlock Text="{Binding MatchLabel}"
+                                 FontWeight="SemiBold" FontSize="14"
+                                 TextWrapping="Wrap"
+                                 Foreground="{StaticResource TextBrush}"/>
+                      <TextBlock Text="{Binding Marche}" FontSize="11"
+                                 TextWrapping="Wrap"
+                                 Foreground="{StaticResource MutedBrush}"/>
+                      <TextBlock Text="{Binding Selection}" FontSize="12"
+                                 TextWrapping="Wrap"
+                                 Foreground="{StaticResource PrimaryBrush}"
+                                 Margin="0,2,0,0"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
-              <!-- Compétition -->
-              <DataGridTextColumn Header="Compétition" Width="150"
-                                  Binding="{Binding Marche}">
+              <!-- ④ Cote(s) -->
+              <DataGridTextColumn Header="Cote(s)" Width="115"
+                                  Binding="{Binding Cote}"
+                                  CanUserSort="False">
                 <DataGridTextColumn.ElementStyle>
                   <Style TargetType="TextBlock">
                     <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
-
-              <!-- Sélection -->
-              <DataGridTextColumn Header="Sélection" Width="200"
-                                  Binding="{Binding Selection}">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="TextWrapping" Value="Wrap"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
-
-              <!-- Cote(s) -->
-              <DataGridTextColumn Header="Cote(s)" Width="180"
-                                  Binding="{Binding Cote}">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Margin" Value="8,4"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="FontSize" Value="14"/>
                     <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
                   </Style>
                 </DataGridTextColumn.ElementStyle>
               </DataGridTextColumn>
 
-              <!-- % Parieurs -->
-              <DataGridTextColumn Header="% Parieurs" Width="160"
-                                  Binding="{Binding RepartitionLabel}"
-                                  SortMemberPath="AnomalieMax">
+              <!-- ⑤ Proba implicite cote -->
+              <DataGridTextColumn Header="Proba implicite" Width="118"
+                                  Binding="{Binding ProbabiliteImpliciteLabel}"
+                                  CanUserSort="False">
                 <DataGridTextColumn.ElementStyle>
                   <Style TargetType="TextBlock">
                     <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Margin" Value="8,4"/>
                     <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="FontFamily" Value="Consolas"/>
                     <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
                     <Setter Property="TextWrapping" Value="Wrap"/>
                   </Style>
                 </DataGridTextColumn.ElementStyle>
               </DataGridTextColumn>
 
-              <!-- Indicateur anomalie cote/parieurs -->
-              <DataGridTextColumn Header="⚡ Anomalie" Width="130"
-                                  Binding="{Binding AnomalieLabelMax}"
+              <!-- ⑥ % Paris parieurs -->
+              <DataGridTextColumn Header="% Paris" Width="118"
+                                  Binding="{Binding RepartitionLabel}"
                                   SortMemberPath="AnomalieMax"
                                   CanUserSort="True">
                 <DataGridTextColumn.ElementStyle>
                   <Style TargetType="TextBlock">
                     <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="FontSize" Value="13"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="HorizontalAlignment" Value="Center"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
-
-              <!-- Détail anomalie toutes issues -->
-              <DataGridTextColumn Header="Détail issues" Width="160"
-                                  Binding="{Binding AnomalieDetail}"
-                                  SortMemberPath="AnomalieMax">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                    <Setter Property="FontSize" Value="11"/>
-                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                    <Setter Property="Margin" Value="8,4"/>
+                    <Setter Property="FontSize" Value="12"/>
                     <Setter Property="FontFamily" Value="Consolas"/>
+                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                    <Setter Property="TextWrapping" Value="Wrap"/>
                   </Style>
                 </DataGridTextColumn.ElementStyle>
               </DataGridTextColumn>
 
-              <!-- Heure -->
-              <DataGridTextColumn Header="Heure" Width="70"
-                                  Binding="{Binding MinuteOuHeure}">
-                <DataGridTextColumn.ElementStyle>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                  </Style>
-                </DataGridTextColumn.ElementStyle>
-              </DataGridTextColumn>
-
-              <!-- Action -->
-              <DataGridTemplateColumn Header="Action" Width="210">
+              <!-- ⑦ Indicateur paris/cote — anomalie, triable -->
+              <DataGridTemplateColumn Header="⚡ Indicateur" Width="148"
+                                      SortMemberPath="AnomalieMax"
+                                      CanUserSort="True">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
-                    <StackPanel Orientation="Horizontal" Margin="6,0"
+                    <StackPanel VerticalAlignment="Center" Margin="6,4"
+                                HorizontalAlignment="Center">
+                      <TextBlock Text="{Binding AnomalieLabelMax}"
+                                 FontSize="13" FontWeight="Bold"
+                                 HorizontalAlignment="Center"
+                                 TextWrapping="Wrap"/>
+                      <TextBlock Text="{Binding AnomalieDetail}"
+                                 FontSize="10" FontFamily="Consolas"
+                                 HorizontalAlignment="Center"
+                                 Foreground="{StaticResource MutedBrush}"
+                                 TextWrapping="Wrap"
+                                 Margin="0,2,0,0"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+
+              <!-- ⑧ Actions -->
+              <DataGridTemplateColumn Header="Actions" Width="150" CanUserSort="False">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <StackPanel Orientation="Vertical" Margin="6,4"
                                 VerticalAlignment="Center">
                       <Button Content="📋 MCP"
                               Style="{StaticResource BtnPrimary}"
@@ -250,7 +254,7 @@
                       <Button Content="📄 Complet"
                               Style="{StaticResource BtnSecondary}"
                               FontSize="12" Padding="8,5"
-                              Margin="6,0,0,0"
+                              Margin="0,4,0,0"
                               Tag="{Binding}"
                               Click="BtnPromptComplet_Click"
                               ToolTip="Prompt complet autonome — données + protocole intégré (sans Projet Claude)"/>

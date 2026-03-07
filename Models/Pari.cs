@@ -117,6 +117,28 @@ public class Pari
         }
     }
 
+    /// <summary>Probabilité implicite par issue, ex: "1: 54%  N: 24%  2: 20%"</summary>
+    public string ProbabiliteImpliciteLabel
+    {
+        get
+        {
+            var coteParts = (Cote ?? "").Split('/').Select(s => s.Trim()).ToList();
+            var selParts  = (Selection ?? "").Split('/').Select(s => s.Trim()).ToList();
+            if (coteParts.Count == 0) return "-";
+
+            var parts = new List<string>();
+            for (int i = 0; i < coteParts.Count; i++)
+            {
+                var c = ParseCote(coteParts[i]);
+                if (c <= 0) continue;
+                var pct = 100.0 / c;
+                var sel = i < selParts.Count ? selParts[i] : (i + 1).ToString();
+                parts.Add($"{sel}: {pct:F0}%");
+            }
+            return parts.Count > 0 ? string.Join("\n", parts) : "-";
+        }
+    }
+
     /// <summary>Ecart max absolu — sert au tri de la colonne.</summary>
     public double AnomalieMax =>
         Anomalies.Any() ? Anomalies.Max(a => Math.Abs(a.Diff)) : -1.0;

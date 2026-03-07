@@ -141,6 +141,16 @@
                         if (t.startsWith('Le '))  p.datePari   = t;
                     });
 
+                // Détection pari Question (Oui/Non, buteur, essai…)
+                const selLower = (p.selection || '').toLowerCase().trim();
+                const mkLower  = (p.marche || '').toLowerCase();
+                if (selLower === 'oui' || selLower === 'non' || selLower === 'yes' || selLower === 'no'
+                    || mkLower.includes('?') || mkLower.includes('buteur')
+                    || mkLower.includes('marque') || mkLower.includes('essai')
+                    || mkLower.includes('scorer') || mkLower.includes('réalise')) {
+                    p.type = 'Question';
+                }
+
                 paris.push(p);
             } catch (err) { log('Erreur card: ' + err.message); }
         });
@@ -239,8 +249,16 @@
                     return '';
                 }).filter(Boolean);
 
+                // Détection pari Question (Oui/Non, buteur, essai…)
+                const selText = labels.join(' / ').toLowerCase();
+                const mkLower2 = (marche || '').toLowerCase();
+                const isQuestion = selText === 'oui / non' || selText === 'oui' || selText === 'non'
+                    || mkLower2.includes('?') || mkLower2.includes('buteur')
+                    || mkLower2.includes('marque') || mkLower2.includes('essai')
+                    || mkLower2.includes('scorer') || mkLower2.includes('réalise');
+
                 paris.push({
-                    type: 'Disponible', sport, equipes, score, isLive,
+                    type: isQuestion ? 'Question' : 'Disponible', sport, equipes, score, isLive,
                     minuteOuHeure, marche,
                     selection:         labels.join(' / ')        || 'N/A',
                     cote:              cotes.join(' / ')         || 'N/A',

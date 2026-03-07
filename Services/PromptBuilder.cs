@@ -14,11 +14,15 @@ public static class PromptBuilder
 
     /// <summary>Prompt compact avec instructions MCP web-scraper (pour Projet Claude).</summary>
     public static string Build(Pari p) =>
-        p.IsLive ? BuildCashoutPrompt(p) : BuildValueBetPrompt(p);
+        p.IsQuestion ? BuildQuestionPrompt(p)
+        : p.IsLive   ? BuildCashoutPrompt(p)
+                      : BuildValueBetPrompt(p);
 
     /// <summary>Prompt complet avec protocole intégré (autonome, sans Projet Claude).</summary>
     public static string BuildFull(Pari p) =>
-        p.IsLive ? BuildFullCashout(p) : BuildFullValueBet(p);
+        p.IsQuestion ? BuildFullQuestion(p)
+        : p.IsLive   ? BuildFullCashout(p)
+                      : BuildFullValueBet(p);
 
     // ── Prompts compacts — user message ──────────────────────────────────────
 
@@ -55,6 +59,29 @@ public static class PromptBuilder
         lines.AddRange(McpScrapingLines(p, isLive: false));
         lines.Add("");
         lines.Add($"→ Protocole value bet {p.Sport.ToLower()}.");
+
+        return string.Join("\n", lines);
+    }
+
+    public static string BuildQuestionPrompt(Pari p)
+    {
+        var lines = new List<string>
+        {
+            $"QUESTION — {p.Sport}",
+            $"Match     : {p.MatchLabel} | {p.DatePari} {p.MinuteOuHeure}",
+            $"Question  : {p.Marche}",
+            $"Sélection : {p.Selection} @ {p.Cote} | Mise {p.Mise} → Gains {p.GainsPotentiels}",
+        };
+
+        if (p.IsLive)
+        {
+            var score = p.Score is not null ? $"Score {p.Score} | " : "";
+            lines.Add($"Live      : {score}{p.MinuteOuHeure}");
+        }
+
+        lines.AddRange(McpQuestionLines(p));
+        lines.Add("");
+        lines.Add("→ Protocole paris question.");
 
         return string.Join("\n", lines);
     }
@@ -153,6 +180,35 @@ public static class PromptBuilder
         return string.Join("\n", lines) + "\n\n" + template;
     }
 
+    private static string BuildFullQuestion(Pari p)
+    {
+        var sep = new string('═', 52);
+        var lines = new List<string>
+        {
+            "ANALYSE PARI QUESTION — PERFORMANCE INDIVIDUELLE",
+            sep,
+            "",
+            "📋 PARI À ANALYSER",
+            $"Match      : {p.MatchLabel}",
+            $"Sport      : {p.Sport}",
+            $"Question   : {p.Marche}",
+            $"Sélection  : {p.Selection} @ cote {p.Cote}",
+            $"Mise prévue: {p.Mise}",
+            $"Date       : {p.DatePari}",
+        };
+
+        if (p.IsLive)
+        {
+            lines.Add($"Score      : {p.Score ?? "N/A"}");
+            lines.Add($"Minute     : {p.MinuteOuHeure}");
+        }
+
+        lines.AddRange(new[] { "", sep, "UTILISE LE PROTOCOLE QUESTION CI-DESSOUS", sep });
+
+        var template = LoadTemplate("question.md");
+        return string.Join("\n", lines) + "\n\n" + template;
+    }
+
     private static string LoadCashoutTemplate(string sport)
     {
         var fileName = (sport ?? "").ToLowerInvariant() switch
@@ -238,6 +294,67 @@ public static class PromptBuilder
         }
     }
 
+    // ── Instructions MCP pour paris Question (stats joueur) ───────────────
+
+    private static IEnumerable<string> McpQuestionLines(Pari p)
+    {
+        var q      = Encode(p.MatchLabel);
+        var joueur = ExtraireNomJoueur(p.Marche);
+        var qJ     = joueur != null ? Encode(joueur) : null;
+
+        yield return "";
+        yield return "🔍 MCP web-scraper :";
+
+        // Stats joueur sur Sofascore
+        if (qJ != null)
+        {
+            yield return $"• fetch_page(\"https://www.sofascore.com/search/#q={qJ}\")";
+            yield return "  → fiche joueur : buts/match, tirs, assists, stats saison + 5 derniers matchs";
+        }
+
+        // Transfermarkt pour historique et statut
+        if (qJ != null)
+        {
+            yield return $"• fetch_page(\"https://www.transfermarkt.com/schnellsuche/ergebnis/schnellsuche?query={qJ}\")";
+            yield return "  → historique buts/assists, blessures, valeur marchande";
+        }
+
+        // Stats match (Sofascore)
+        yield return $"• fetch_page(\"https://www.sofascore.com/search/#q={q}\")";
+        yield return "  → stats défensives adversaire, composition probable";
+    }
+
+    /// <summary>
+    /// Tente d'extraire le nom du joueur depuis le libellé du marché.
+    /// Ex: "M. Mbappé marque ?" → "M. Mbappé"
+    /// Ex: "Buteur - A. Dupont" → "A. Dupont"
+    /// </summary>
+    private static string? ExtraireNomJoueur(string marche)
+    {
+        if (string.IsNullOrWhiteSpace(marche)) return null;
+
+        // Pattern "Nom marque/réalise/reçoit ?"
+        var mots = new[] { "marque", "réalise", "reçoit", "scorer", "scores", "to score", "inscrit" };
+        foreach (var mot in mots)
+        {
+            var idx = marche.IndexOf(mot, StringComparison.OrdinalIgnoreCase);
+            if (idx > 0) return marche[..idx].Trim().TrimEnd('-', '–', ':').Trim();
+        }
+
+        // Pattern "Buteur - Nom" ou "Essai - Nom"
+        var prefixes = new[] { "buteur", "essai", "passeur", "carton", "scorer" };
+        foreach (var prefix in prefixes)
+        {
+            if (marche.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                var rest = marche[prefix.Length..].TrimStart('-', '–', ':', ' ');
+                if (rest.Length > 2) return rest.TrimEnd('?', ' ');
+            }
+        }
+
+        return null;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static IEnumerable<(string title, string file)> ProtocolFiles() =>
@@ -252,6 +369,7 @@ public static class PromptBuilder
             ("VALUE BET BASKETBALL",    "basketball.md"),
             ("VALUE BET AUTRES SPORTS", "Autres.md"),
             ("SCAN VALUE MULTI-PARIS",  "value_scan.md"),
+            ("PARIS QUESTION (OUI/NON)", "question.md"),
         };
 
     private static string LoadTemplate(string fileName)

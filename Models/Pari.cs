@@ -59,6 +59,25 @@ public class Pari
     // ── Métadonnées C# (non présentes dans le JS) ──────────────────
     public DateTime DateExtraction { get; set; } = DateTime.Now;
     public string? PromptGenere { get; set; }
+
+    // ── Détection pari « Question » (Oui/Non, buteur, essai…) ────
+    public bool IsQuestion
+    {
+        get
+        {
+            var sel = (Selection ?? "").Trim().ToLowerInvariant();
+            if (sel is "oui" or "non" or "yes" or "no") return true;
+            var marche = (Marche ?? "").ToLowerInvariant();
+            if (marche.Contains('?')) return true;
+            if (marche.Contains("buteur") || marche.Contains("marque")
+                || marche.Contains("essai") || marche.Contains("scorer")
+                || marche.Contains("assist") || marche.Contains("carton")
+                || marche.Contains("tir cadré") || marche.Contains("réalise"))
+                return true;
+            return false;
+        }
+    }
+
     // ── Helpers ────────────────────────────────────────────────────
     public string MatchLabel =>
         Equipes.Count >= 2 ? $"{Equipes[0]} vs {Equipes[1]}"

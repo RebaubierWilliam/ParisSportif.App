@@ -13,8 +13,8 @@ public static class PromptBuilder
     /// <summary>
     /// Point d'entrée unique : route vers cashout (live) ou value bet (à venir).
     /// </summary>
-    public static string Build(Pari p, CashoutStats? stats = null) =>
-        p.IsLive ? BuildCashoutPrompt(p, stats) : BuildValueBetPrompt(p);
+    public static string Build(Pari p) =>
+        p.IsLive ? BuildCashoutPrompt(p) : BuildValueBetPrompt(p);
 
     /// <summary>
     /// Génère un prompt de scan value pour une liste de paris.
@@ -92,9 +92,9 @@ public static class PromptBuilder
         return string.Join("\n", lines) + "\n\n" + template;
     }
 
-    public static string BuildCashoutPrompt(Pari p, CashoutStats? stats = null)
+    public static string BuildCashoutPrompt(Pari p)
     {
-        var context  = BuildContext(p, stats);
+        var context  = BuildContext(p);
         var template = LoadCashoutTemplate(p.Sport);
         return context + "\n\n" + template;
     }
@@ -124,7 +124,7 @@ public static class PromptBuilder
     }
 
     // ── Contexte du pari injecté en tête du prompt ──────────────────────────
-    private static string BuildContext(Pari p, CashoutStats? stats)
+    private static string BuildContext(Pari p)
     {
         var co    = p.Cashout ?? "N/A";
         var lines = new List<string>
@@ -141,34 +141,12 @@ public static class PromptBuilder
             $"Cash Out actuel : {co}",
             $"{p.NumeroPari}  |  {p.DatePari}",
             $"Marché          : {p.Marche}",
-            ""
+            "",
+            "📊 SITUATION EN DIRECT",
         };
 
-        if (stats is not null)
-        {
-            lines.Add("📊 STATS LIVE — FlashScore (extraction automatique)");
-            lines.Add($"Score  : {stats.Score ?? p.Score ?? "N/A"}");
-            lines.Add($"Minute : {stats.Minute ?? p.MinuteOuHeure}");
-
-            if (stats.Rows.Count > 0)
-            {
-                lines.Add("");
-                var h0 = Trunc(p.Equipes.ElementAtOrDefault(0) ?? "Eq.1", 10);
-                var h1 = Trunc(p.Equipes.ElementAtOrDefault(1) ?? "Eq.2", 10);
-                lines.Add("┌──────────────────────────────────────────────┐");
-                lines.Add($"│ {"Statistique",-22} │ {h0,-10} │ {h1,-10} │");
-                lines.Add("├──────────────────────────────────────────────┤");
-                foreach (var r in stats.Rows)
-                    lines.Add($"│ {Trunc(r.Name, 22),-22} │ {r.Home,10} │ {r.Away,-10} │");
-                lines.Add("└──────────────────────────────────────────────┘");
-            }
-        }
-        else
-        {
-            lines.Add("📊 SITUATION EN DIRECT");
-            lines.Add(p.Score is not null ? $"Score  : {p.Score}" : "Avant le coup d'envoi");
-            lines.Add($"Minute : {p.MinuteOuHeure}");
-        }
+        lines.Add(p.Score is not null ? $"Score  : {p.Score}" : "Avant le coup d'envoi");
+        lines.Add($"Minute : {p.MinuteOuHeure}");
 
         lines.Add("");
         lines.Add(Sep);

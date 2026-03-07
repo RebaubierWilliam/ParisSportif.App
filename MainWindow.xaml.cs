@@ -204,7 +204,7 @@ public partial class MainWindow : Window
         if (existing != null) { MainTabs.SelectedItem = existing; return; }
 
         // Générer le prompt
-        var prompt = PromptBuilder.Build(pari, null);
+        var prompt = PromptBuilder.Build(pari);
         Clipboard.SetText(prompt);
 
         // ── Contenu de l'onglet ───────────────────────────────────────────

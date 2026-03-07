@@ -54,7 +54,6 @@ public class Pari
 
     // ── Métadonnées C# (non présentes dans le JS) ──────────────────
     public DateTime DateExtraction { get; set; } = DateTime.Now;
-    public CashoutStats? FlashScoreStats { get; set; }
     public string? PromptGenere { get; set; }
     // ── Helpers ────────────────────────────────────────────────────
     public string MatchLabel =>

@@ -16,7 +16,6 @@
   <!-- Embed JS scripts as resources -->
   <ItemGroup>
     <EmbeddedResource Include="Scripts\extracteur_mesParis.js" />
-    <EmbeddedResource Include="Scripts\flashscore_extractor.js" />
   </ItemGroup>
   <!-- Copy prompt .md files to output -->
   <ItemGroup>

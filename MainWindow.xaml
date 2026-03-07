@@ -115,7 +115,7 @@
             <DataGrid.Columns>
 
               <!-- ① Sport : emoji + statut -->
-              <DataGridTemplateColumn Header="Sport" Width="72" CanUserSort="False">
+              <DataGridTemplateColumn Header="Sport" Width="70" CanUserSort="False">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -131,7 +131,7 @@
               </DataGridTemplateColumn>
 
               <!-- ② Date et Heure -->
-              <DataGridTemplateColumn Header="Date / Heure" Width="105" CanUserSort="False">
+              <DataGridTemplateColumn Header="Date / Heure" Width="95" CanUserSort="False">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <StackPanel VerticalAlignment="Center" Margin="6,4">
@@ -147,7 +147,7 @@
               </DataGridTemplateColumn>
 
               <!-- ③ Match / Compétition / Sélection -->
-              <DataGridTemplateColumn Header="Match / Sélection" Width="*" CanUserSort="False">
+              <DataGridTemplateColumn Header="Match / Sélection" Width="240" CanUserSort="False">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <StackPanel VerticalAlignment="Center" Margin="8,4">
@@ -168,7 +168,7 @@
               </DataGridTemplateColumn>
 
               <!-- ④ Cote(s) -->
-              <DataGridTextColumn Header="Cote(s)" Width="115"
+              <DataGridTextColumn Header="Cote(s)" Width="110"
                                   Binding="{Binding Cote}"
                                   CanUserSort="False">
                 <DataGridTextColumn.ElementStyle>
@@ -184,7 +184,7 @@
               </DataGridTextColumn>
 
               <!-- ⑤ Proba implicite cote -->
-              <DataGridTextColumn Header="Proba implicite" Width="118"
+              <DataGridTextColumn Header="Proba implicite" Width="125"
                                   Binding="{Binding ProbabiliteImpliciteLabel}"
                                   CanUserSort="False">
                 <DataGridTextColumn.ElementStyle>
@@ -200,7 +200,7 @@
               </DataGridTextColumn>
 
               <!-- ⑥ % Paris parieurs -->
-              <DataGridTextColumn Header="% Paris" Width="118"
+              <DataGridTextColumn Header="% Paris" Width="125"
                                   Binding="{Binding RepartitionLabel}"
                                   SortMemberPath="AnomalieMax"
                                   CanUserSort="True">
@@ -217,7 +217,7 @@
               </DataGridTextColumn>
 
               <!-- ⑦ Indicateur paris/cote — anomalie, triable -->
-              <DataGridTemplateColumn Header="⚡ Indicateur" Width="148"
+              <DataGridTemplateColumn Header="⚡ Indicateur" Width="160"
                                       SortMemberPath="AnomalieMax"
                                       CanUserSort="True">
                 <DataGridTemplateColumn.CellTemplate>
@@ -240,7 +240,7 @@
               </DataGridTemplateColumn>
 
               <!-- ⑧ Actions -->
-              <DataGridTemplateColumn Header="Actions" Width="150" CanUserSort="False">
+              <DataGridTemplateColumn Header="Actions" Width="145" CanUserSort="False">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <StackPanel Orientation="Vertical" Margin="6,4"

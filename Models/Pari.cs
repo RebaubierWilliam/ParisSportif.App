@@ -155,7 +155,7 @@ public class Pari
             var abs  = Math.Abs(top.Diff);
             if (abs < 5) return "-";
 
-            var emoji = abs >= 20 ? "🔴" : abs >= 12 ? "🟠" : "🟡";
+            var emoji = abs >= 20 ? "🚨" : abs >= 12 ? "⚠️" : "💡";
             var sign  = top.Diff >= 0 ? "+" : "";
             return $"{emoji} {sign}{top.Diff:F0}%  [{top.Sel}]";
         }

@@ -72,7 +72,8 @@ public class Pari
             if (marche.Contains("buteur") || marche.Contains("marque")
                 || marche.Contains("essai") || marche.Contains("scorer")
                 || marche.Contains("assist") || marche.Contains("carton")
-                || marche.Contains("tir cadré") || marche.Contains("réalise"))
+                || marche.Contains("tir cadré") || marche.Contains("réalise")
+                || marche.Contains("mi-temps") || marche.StartsWith("cb "))
                 return true;
             return false;
         }
@@ -81,7 +82,23 @@ public class Pari
     // ── Helpers ────────────────────────────────────────────────────
     public string MatchLabel =>
         Equipes.Count >= 2 ? $"{Equipes[0]} vs {Equipes[1]}"
-                           : string.Join(" ", Equipes);
+        : Equipes.Count == 1 ? Equipes[0]
+        : !string.IsNullOrWhiteSpace(Marche) ? Marche
+        : "Événement inconnu";
+
+    /// <summary>Détecte les paris Multi But de Ligue</summary>
+    public bool IsMultiBut
+    {
+        get
+        {
+            var type = (Type ?? "").ToLowerInvariant();
+            if (type.Contains("multi but") || type.Contains("multi-but")) return true;
+            var marche = (Marche ?? "").ToLowerInvariant();
+            return marche.Contains("multi but") || marche.Contains("multi-but")
+                || marche.Contains("multi goal") || marche.Contains("nombre total de buts")
+                || marche.Contains("multibut") || marche.Contains("multibuteur");
+        }
+    }
 
     public string StatutLabel => IsLive ? "🔴 LIVE" : "⏳ À venir";
 

@@ -27,6 +27,7 @@ public partial class MainWindow : Window
         DataContext = _vm;
 
         _extractionPS.ParisExtracted += OnParisExtracted;
+        _extractionPS.HtmlDumped     += OnHtmlDumped;
         _extractionPS.LogMessage     += _vm.Log;
 
         WebViewPS.CoreWebView2InitializationCompleted += OnPSCoreReady;
@@ -89,12 +90,20 @@ public partial class MainWindow : Window
     private async void BtnExtraire_Click(object sender, RoutedEventArgs e)
         => await _extractionPS.InjectExtracteurAsync();
 
-    // ── Instructions Projet : system prompt global à coller dans claude.ai ────
-    private void BtnSystemPrompt_Click(object sender, RoutedEventArgs e)
+    // ── Bouton Debug HTML ────────────────────────────────────────────────
+    private async void BtnDebugHtml_Click(object sender, RoutedEventArgs e)
+        => await _extractionPS.InjectHtmlDumpAsync();
+
+    private void OnHtmlDumped(string html)
     {
-        var prompt = PromptBuilder.BuildGlobalSystemPrompt();
-        Clipboard.SetText(prompt);
-        _vm.Log("📋 Instructions Projet copiées — colle dans les instructions de ton Projet claude.ai");
+        Dispatcher.Invoke(() =>
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                $"parionssport_debug_{DateTime.Now:yyyyMMdd_HHmmss}.html");
+            File.WriteAllText(path, html);
+            _vm.Log($"🐛 HTML sauvegardé : {path}");
+        });
     }
 
     // ── Scan Value : génère un prompt multi-paris pour comparaison bookmakers ─
@@ -199,15 +208,6 @@ public partial class MainWindow : Window
         _vm.Log($"🔍 Scan Value généré pour {paris.Count} paris — copié dans le presse-papier.");
     }
 
-    // ── Bouton Prompt MCP : prompt compact avec instructions web-scraper ──────
-    private void BtnPrompt_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
-        _vm.SelectedPari = pari;
-        OpenPromptTab(pari, PromptBuilder.Build(pari), pari.NumeroPari, $"📋 {pari.MatchLabel}");
-        _vm.Log($"📋 Prompt MCP généré pour {pari.MatchLabel} — copié dans le presse-papier");
-    }
-
     // ── Bouton Prompt Complet : prompt autonome avec protocole intégré ────────
     private void BtnPromptComplet_Click(object sender, RoutedEventArgs e)
     {
@@ -215,6 +215,15 @@ public partial class MainWindow : Window
         _vm.SelectedPari = pari;
         OpenPromptTab(pari, PromptBuilder.BuildFull(pari), pari.NumeroPari + "_full", $"📄 {pari.MatchLabel}");
         _vm.Log($"📄 Prompt complet généré pour {pari.MatchLabel} — copié dans le presse-papier");
+    }
+
+    // ── Bouton Prompt Agent : prompt 2 phases collecte + analyse ─────────────
+    private void BtnPromptAgent_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
+        _vm.SelectedPari = pari;
+        OpenPromptTab(pari, PromptBuilder.BuildAgent(pari), pari.NumeroPari + "_agent", $"🔬 {pari.MatchLabel}");
+        _vm.Log($"🔬 Prompt agent généré pour {pari.MatchLabel} — copié dans le presse-papier");
     }
 
     // ── Création/activation d'un onglet prompt ────────────────────────────────

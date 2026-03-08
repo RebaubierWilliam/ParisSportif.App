@@ -33,6 +33,11 @@
                     Click="BtnExtraire_Click"
                     Margin="0,0,12,0"
                     ToolTip="Injecte le script extracteur sur la page actuelle"/>
+            <Button Content="🐛 Debug HTML"
+                    Style="{StaticResource BtnSecondary}"
+                    Click="BtnDebugHtml_Click"
+                    Margin="0,0,12,0"
+                    ToolTip="Sauvegarde le HTML de la page dans un fichier pour diagnostic"/>
             <TextBlock VerticalAlignment="Center" FontSize="11"
                        Foreground="{StaticResource MutedBrush}"
                        Text="💡 Connecte-toi, navigue vers tes paris ou une page de cotes, puis clique Extraire"/>
@@ -73,12 +78,6 @@
                       FontSize="12" Padding="12,5"
                       Margin="0,0,8,0"
                       ToolTip="Génère un prompt comparant tes cotes avec Pinnacle, Betclic, Winamax, Bet365 pour détecter les value bets"/>
-              <Button Content="📋 Instructions Projet"
-                      Style="{StaticResource BtnSecondary}"
-                      Click="BtnSystemPrompt_Click"
-                      FontSize="12" Padding="12,5"
-                      Margin="0,0,8,0"
-                      ToolTip="Copie les protocoles d'analyse — à coller dans les instructions de ton Projet claude.ai (system prompt caché = économie de tokens)"/>
             </StackPanel>
           </Border>
 
@@ -295,19 +294,19 @@
                   <DataTemplate>
                     <StackPanel Orientation="Vertical" Margin="6,4"
                                 VerticalAlignment="Center">
-                      <Button Content="📋 MCP"
+                      <Button Content="📄 Complet"
                               Style="{StaticResource BtnPrimary}"
                               FontSize="12" Padding="8,5"
                               Tag="{Binding}"
-                              Click="BtnPrompt_Click"
-                              ToolTip="Prompt compact — données du pari + instructions MCP web-scraper (pour Projet Claude)"/>
-                      <Button Content="📄 Complet"
+                              Click="BtnPromptComplet_Click"
+                              ToolTip="Prompt complet autonome — données + protocole intégré"/>
+                      <Button Content="🔬 Agent"
                               Style="{StaticResource BtnSecondary}"
                               FontSize="12" Padding="8,5"
                               Margin="0,4,0,0"
                               Tag="{Binding}"
-                              Click="BtnPromptComplet_Click"
-                              ToolTip="Prompt complet autonome — données + protocole intégré (sans Projet Claude)"/>
+                              Click="BtnPromptAgent_Click"
+                              ToolTip="Prompt 2 phases : collecte structurée + analyse mathématique (~120 lignes)"/>
                     </StackPanel>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>

@@ -83,13 +83,33 @@
                     if (i < 2) p.equipes.push(o.textContent.trim());
                 });
 
+                // Fallback pour paris sans équipes (multi-but de ligue, etc.)
+                if (p.equipes.length === 0) {
+                    const ALT_SEL = [
+                        '.psel-event-info__title',
+                        '.psel-event-info__competition',
+                        '[class*="event-title"]',
+                        '[class*="competition"]',
+                        '[class*="event-name"]',
+                    ];
+                    for (const sel of ALT_SEL) {
+                        const found = card.querySelector(sel);
+                        if (found) {
+                            const t = found.textContent.replace(/\s+/g, ' ').trim();
+                            if (t.length > 2 && t.length < 150) { p.equipes = [t]; break; }
+                        }
+                    }
+                }
+
                 p.score        = card.querySelector('.psel-score--current')?.textContent.replace(/\s+/g, ' ').trim() ?? null;
                 const liveEl   = card.querySelector('psel-live-timer');
                 const mktLabel = card.querySelector('.psel-cart-market__label');
                 const mktText  = mktLabel?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+                // psel-bet-option contient la vraie description pour les CB / questions
+                const betOpt   = card.querySelector('.psel-bet-option')?.textContent.replace(/\s+/g, ' ').trim() ?? '';
                 p.isLive       = !!(liveEl || mktText.includes('Live'));
                 p.minuteOuHeure= card.querySelector('.psel-timer')?.textContent.replace(/\s+/g, ' ').trim() ?? 'N/A';
-                p.marche       = mktText;
+                p.marche       = betOpt || mktText;
                 p.selection    = mktLabel?.querySelector('.psel-font-bold')?.textContent.trim() ?? 'N/A';
                 // Cote individuelle — plusieurs sélecteurs en cascade
                 const coteSelectors = [
@@ -144,11 +164,21 @@
                 // Détection pari Question (Oui/Non, buteur, essai…)
                 const selLower = (p.selection || '').toLowerCase().trim();
                 const mkLower  = (p.marche || '').toLowerCase();
+                const typeLower = (p.type || '').toLowerCase();
                 if (selLower === 'oui' || selLower === 'non' || selLower === 'yes' || selLower === 'no'
                     || mkLower.includes('?') || mkLower.includes('buteur')
                     || mkLower.includes('marque') || mkLower.includes('essai')
-                    || mkLower.includes('scorer') || mkLower.includes('réalise')) {
+                    || mkLower.includes('scorer') || mkLower.includes('réalise')
+                    || mkLower.includes('assist') || mkLower.includes('carton')
+                    || mkLower.includes('tir cadré') || mkLower.includes('performance')) {
                     p.type = 'Question';
+                }
+
+                // Détection pari Multi But de Ligue
+                if (typeLower.includes('multi but') || typeLower.includes('multi-but')
+                    || mkLower.includes('multi but') || mkLower.includes('multi-but')
+                    || mkLower.includes('multi goal') || mkLower.includes('nombre total de buts')) {
+                    p.type = 'Multi But';
                 }
 
                 paris.push(p);
@@ -186,17 +216,51 @@
         containers.forEach(el => {
             try {
                 // Équipes
-                const equipes = Array.from(el.querySelectorAll('.psel-opponent__name'))
+                let equipes = Array.from(el.querySelectorAll('.psel-opponent__name'))
                     .slice(0, 2).map(t => t.textContent.trim());
-                if (equipes.length === 0) return;
+
+                // Fallback pour les paris sans équipes (multi-but de ligue, etc.)
+                if (equipes.length === 0) {
+                    const ALT_NAME_SEL = [
+                        '.psel-event-info__title',
+                        '.psel-event-info__competition',
+                        '[class*="event-info__title"]',
+                        '[class*="event__title"]',
+                        '[class*="event-name"]',
+                        'h3', 'h4',
+                    ];
+                    for (const sel of ALT_NAME_SEL) {
+                        const found = el.querySelector(sel);
+                        if (found) {
+                            const t = found.textContent.replace(/\s+/g, ' ').trim();
+                            if (t.length > 2 && t.length < 150) { equipes = [t]; break; }
+                        }
+                    }
+                    // Dernier recours : texte du lien principal
+                    if (equipes.length === 0) {
+                        const link = el.querySelector('a[href]');
+                        if (link) {
+                            const t = link.textContent.replace(/\s+/g, ' ').trim();
+                            if (t.length > 2 && t.length < 150) equipes = [t];
+                        }
+                    }
+                    if (equipes.length === 0) {
+                        log('⚠️ Événement ignoré (aucun nom trouvé) : ' + el.tagName);
+                        return;
+                    }
+                }
 
                 // Heure / statut
                 const minuteOuHeure = el.querySelector('time.psel-timer, .psel-timer')
                     ?.textContent.trim() ?? 'N/A';
 
-                // Compétition (marché)
-                const marche = el.querySelector('.psel-event-info__competition')
+                // Description du pari (psel-bet-option = clé pour les CB / questions / multi-but)
+                const betOption = el.querySelector('.psel-bet-option')
+                    ?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+                const competition = el.querySelector('.psel-event-info__competition')
                     ?.textContent.trim() ?? '';
+                // Priorité au bet-option (description du pari), sinon la compétition
+                const marche = betOption || competition;
 
                 // Score (si live)
                 const score = el.querySelector('.psel-scoreboard__score, .psel-score--current, [class*="score--"]')
@@ -211,12 +275,20 @@
 
                 // Cotes + popularité : une ligne par match avec toutes les cotes groupées
                 const outcomes = Array.from(el.querySelectorAll('psel-outcome'));
-                const labels = outcomes
+                let labels = outcomes
                     .map(o => o.querySelector('.psel-outcome__label')?.textContent.trim() ?? '')
                     .filter(Boolean);
                 const cotes = outcomes
                     .map(o => o.querySelector('.psel-outcome__data')?.textContent.trim() ?? '')
                     .filter(Boolean);
+
+                // Fallback labels : layout psel-market--default (multi-but, vainqueur…)
+                // Les labels sont dans <th class="psel-market__head"> au lieu de psel-outcome__label
+                if (labels.length === 0) {
+                    labels = Array.from(el.querySelectorAll('.psel-market__head'))
+                        .map(th => th.textContent.trim())
+                        .filter(Boolean);
+                }
 
                 // Pourcentages de paris (% parieurs par issue) — plusieurs sélecteurs pour robustesse
                 const PCT_SELECTORS = [
@@ -252,13 +324,26 @@
                 // Détection pari Question (Oui/Non, buteur, essai…)
                 const selText = labels.join(' / ').toLowerCase();
                 const mkLower2 = (marche || '').toLowerCase();
+                const compLower = (competition || '').toLowerCase();
                 const isQuestion = selText === 'oui / non' || selText === 'oui' || selText === 'non'
                     || mkLower2.includes('?') || mkLower2.includes('buteur')
                     || mkLower2.includes('marque') || mkLower2.includes('essai')
-                    || mkLower2.includes('scorer') || mkLower2.includes('réalise');
+                    || mkLower2.includes('scorer') || mkLower2.includes('réalise')
+                    || mkLower2.includes('assist') || mkLower2.includes('carton')
+                    || mkLower2.includes('tir cadré') || mkLower2.includes('performance')
+                    || mkLower2.includes('mi-temps') || mkLower2.startsWith('cb ');
+
+                // Détection Multi But de Ligue
+                const isMultiBut = mkLower2.includes('multi but') || mkLower2.includes('multi-but')
+                    || mkLower2.includes('multi goal') || mkLower2.includes('nombre total de buts')
+                    || compLower.includes('multibut') || compLower === 'multibuts'
+                    || selText.includes('multi but') || selText.includes('multi-but')
+                    || compLower.includes('multibuteur');
+
+                const betType = isMultiBut ? 'Multi But' : isQuestion ? 'Question' : 'Disponible';
 
                 paris.push({
-                    type: isQuestion ? 'Question' : 'Disponible', sport, equipes, score, isLive,
+                    type: betType, sport, equipes, score, isLive,
                     minuteOuHeure, marche,
                     selection:         labels.join(' / ')        || 'N/A',
                     cote:              cotes.join(' / ')         || 'N/A',
@@ -448,7 +533,10 @@
         // Compter les outcomes et markets
         const nbOutcomes = document.querySelectorAll('psel-outcome').length;
         const nbMarkets = document.querySelectorAll('psel-market, psel-market-group, [class*="market"]').length;
-        log(`📊 psel-outcome: ${nbOutcomes} | markets: ${nbMarkets}`);
+        const nbCards = document.querySelectorAll('psel-history-card').length;
+        const nbEvents = document.querySelectorAll('psel-event-main, psel-event-card, psel-live-event-card').length;
+        const nbOpponents = document.querySelectorAll('.psel-opponent__name').length;
+        log(`📊 cards: ${nbCards} | events: ${nbEvents} | opponents: ${nbOpponents} | outcomes: ${nbOutcomes} | markets: ${nbMarkets}`);
     }
 
     // ══════════════════════════════════════════════════════════════════

@@ -15,6 +15,7 @@ public class ExtractionService
     private readonly string   _extracteurScript;
 
     public event Action<List<Pari>>? ParisExtracted;
+    public event Action<string>?     HtmlDumped;
     public event Action<string>?     LogMessage;
 
     public ExtractionService(WebView2 webView)
@@ -42,6 +43,21 @@ public class ExtractionService
         await _webView.CoreWebView2.ExecuteScriptAsync(_extracteurScript);
     }
 
+    /// <summary>Injecte un script qui dump le HTML pertinent de la page pour diagnostic.</summary>
+    public async Task InjectHtmlDumpAsync()
+    {
+        if (_webView.CoreWebView2 is null) return;
+        Log("🐛 Injection du dump HTML…");
+        const string script = """
+            (function() {
+                var html = document.documentElement.outerHTML;
+                if (window.chrome && window.chrome.webview)
+                    window.chrome.webview.postMessage(JSON.stringify({ type: 'HTML_DUMP', data: html }));
+            })();
+            """;
+        await _webView.CoreWebView2.ExecuteScriptAsync(script);
+    }
+
     // ── Réception des messages JS → C# ─────────────────────────────────────
     private void OnWebMessage(object? sender,
         Microsoft.Web.WebView2.Core.CoreWebView2WebMessageReceivedEventArgs e)
@@ -67,6 +83,12 @@ public class ExtractionService
                         ?? new List<Pari>();
                     Log($"✅ {paris.Count} paris reçu(s)");
                     ParisExtracted?.Invoke(paris);
+                    break;
+
+                case "HTML_DUMP":
+                    var html = root.GetProperty("data").GetString() ?? "";
+                    Log($"📄 HTML reçu ({html.Length} caractères)");
+                    HtmlDumped?.Invoke(html);
                     break;
 
                 case "LOG":

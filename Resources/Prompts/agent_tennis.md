@@ -2,77 +2,186 @@
 PHASE 1 — COLLECTE DE DONNEES (affiche tout avant Phase 2)
 ═══════════════════════════════════════════════════════
 
-Recherche web OBLIGATOIRE pour chaque section. Source requise.
-Si introuvable : [DONNEE MANQUANTE — Confiance reduite].
+⚠️ REGLE ABSOLUE : Recherche web OBLIGATOIRE pour CHAQUE section.
+Tu dois effectuer AU MINIMUM 10 recherches web distinctes en Phase 1.
+Chaque tableau doit contenir des VALEURS CONCRETES (chiffres, scores, dates).
+Si introuvable apres 2 sources : [DONNEE MANQUANTE — Confiance reduite].
+INTERDICTION d'inventer ou estimer une donnee sans source.
+
+╔═══════════════════════════════════════════════════════════════╗
+║ DETECTION NIVEAU DE TOURNOI — Adapte ta strategie            ║
+╠═══════════════════════════════════════════════════════════════╣
+║ TIER 1 : Grand Slam, Masters 1000, ATP 500                   ║
+║   → tennisabstract.com + atptour.com (stats completes, Elo)  ║
+║ TIER 2 : ATP 250, WTA 500/250, WTA 1000                      ║
+║   → tennisabstract.com + flashscore.com (stats souvent OK)   ║
+║ TIER 3 : Challengers, ITF, WTA 125, qualifications           ║
+║   → flashscore.com + tennisexplorer.com en priorite           ║
+║   → tennisabstract.com (stats partielles pour joueurs <200)  ║
+║   → Elo surface-specifique souvent INDISPONIBLE               ║
+║   → Accepter une incertitude plus grande                      ║
+╚═══════════════════════════════════════════════════════════════╝
+
+SOURCES ALTERNATIVES POUR JOUEURS PEU CONNUS (rang > 150) :
+  - flashscore.com : resultats recents + stats de match disponibles
+  - tennisexplorer.com : historique complet meme pour joueurs ITF
+  - sofascore.com : stats de match (aces, DF, BP) meme en Challenger
+  - matchstat.com : stats detaillees pour Challengers et ITF
+  - live-tennis.eu : classements live et points en jeu
 
 1.1 CONTEXTE DU MATCH
+RECHERCHES A EFFECTUER :
+  1. Chercher "[Nom du tournoi] [annee] draw" sur flashscore.com ou atptour.com/wtatennis.com
+  2. Chercher "[Nom du tournoi] conditions" pour surface/conditions
+
 Tournoi : [Nom, categorie (GS/M1000/500/250/Challenger)]
-Surface : [Type + vitesse + indoor/outdoor]
+Surface : [Type + vitesse estimee (lent/moyen/rapide) + indoor/outdoor]
 Tour : [1er tour / quart / demi / finale]
 Format : [Bo3 / Bo5]
+Conditions : [meteo, altitude, indoor/outdoor]
 
 1.2 CLASSEMENTS & ELO
-→ atptour.com/wtatennis.com + tennisabstract.com
-| Donnee                   | Joueur A      | Joueur B      |
-|--------------------------|---------------|---------------|
-| Classement ATP/WTA       |               |               |
-| Rang il y a 6 mois       |               |               |
-| Elo global               |               |               |
-| Elo surface-specifique   |               |               |
+RECHERCHES A EFFECTUER (toutes obligatoires) :
+  TIER 1-2 :
+    1. Chercher "[Joueur A] ranking" sur atptour.com (ATP) ou wtatennis.com (WTA)
+    2. Chercher "[Joueur B] ranking" idem
+    3. Chercher "[Joueur A] elo rating" sur tennisabstract.com/reports/rankingsDetail.html
+    4. Chercher "[Joueur B] elo rating" idem
+    5. Pour Elo surface-specifique : tennisabstract.com → onglet surface (clay/hard/grass)
+  TIER 3 (Challengers, ITF) :
+    3b. Si Elo indisponible sur tennisabstract, chercher le classement live
+        sur live-tennis.eu/en/atp-live-ranking (ou wta-live-ranking)
+    5b. Si Elo surface indisponible : utiliser le W-L sur la surface comme proxy
+  DANS TOUS LES CAS :
+    6. Chercher "[Joueur A] ranking history" pour evolution 6 mois
+
+| Donnee                   | Joueur A      | Joueur B      | Source |
+|--------------------------|---------------|---------------|--------|
+| Classement ATP/WTA       |               |               |        |
+| Rang il y a 6 mois       |               |               |        |
+| Elo global               |               |               |        |
+| Elo surface-specifique   |               |               |        |
+
+Sources : [URL 1], [URL 2], ...
 
 1.3 STATS SERVICE & RETOUR (12 derniers mois)
-→ tennisabstract.com > atptour.com/stats
-| Stat                     | Joueur A      | Joueur B      |
-|--------------------------|---------------|---------------|
-| SPW (% pts gagnes serv.) |               |               |
-| RPW (% pts gagnes ret.)  |               |               |
-| Hold %                   |               |               |
-| % BP sauves              |               |               |
-| % BP convertis           |               |               |
-| Aces/match               |               |               |
-| DF/match                 |               |               |
-| % 1ere balle in          |               |               |
+RECHERCHES A EFFECTUER (dans cet ordre) :
+  TIER 1-2 :
+    1. Chercher "[Joueur A] stats 2024" sur tennisabstract.com/cgi-bin/player-classic.cgi?p=[Joueur]
+    2. Chercher "[Joueur B] stats 2024" idem
+    3. Filtrer par surface : tennisabstract.com → selectionner surface
+    4. Fallback : chercher "[Joueur] statistics 2024-25" sur atptour.com/en/stats/
+  TIER 3 (Challengers, ITF) — stats souvent partielles :
+    1. Chercher "[Joueur] stats" sur tennisabstract.com (peut etre incomplet)
+    2. Chercher "[Joueur] profile" sur flashscore.com → onglet stats
+    3. Chercher "[Joueur]" sur matchstat.com (bon pour Challengers)
+    4. Fallback : calculer SPW/RPW manuellement a partir des 5-10 derniers matchs
+       visibles sur flashscore.com ou tennisexplorer.com (stats par match)
+    → Si stats insuffisantes : signaler [STATS PARTIELLES — echantillon = X matchs]
+  DANS TOUS LES CAS :
+    5. Pour stats sur cette surface specifique : filtrer "surface = [clay/hard/grass]"
+    6. Chercher "[Joueur A] serve stats" et "[Joueur B] return stats" pour details
+
+| Stat                     | Joueur A      | Joueur B      | Surface? | Source |
+|--------------------------|---------------|---------------|----------|--------|
+| SPW (% pts gagnes serv.) |               |               |          |        |
+| RPW (% pts gagnes ret.)  |               |               |          |        |
+| Hold %                   |               |               |          |        |
+| % BP sauves              |               |               |          |        |
+| % BP convertis           |               |               |          |        |
+| Aces/match               |               |               |          |        |
+| DF/match                 |               |               |          |        |
+| % 1ere balle in          |               |               |          |        |
+| % pts gagnes 1ere balle  |               |               |          |        |
+| % pts gagnes 2eme balle  |               |               |          |        |
+
+Sources : [URL 1], [URL 2], ...
 
 1.4 FORME RECENTE (10 derniers matchs)
-→ tennisexplorer.com ou flashscore.com
-| Date | Adversaire (rang) | Surface | Score | Duree | Qualite |
-|------|-------------------|---------|-------|-------|---------|
-Bilan W-L : A = ___  B = ___
+RECHERCHES A EFFECTUER :
+  1. Chercher "[Joueur A] results 2025" sur flashscore.com ou tennisexplorer.com
+  2. Chercher "[Joueur B] results 2025" sur flashscore.com ou tennisexplorer.com
+  3. Pour chaque match recent, noter le rang de l'adversaire au moment du match
+  4. Fallback : chercher "[Joueur] recent matches" sur sofascore.com
+
+Joueur A — 10 derniers matchs :
+| # | Date | Tournoi | Surface | Adversaire (rang) | Score | Duree | W/L |
+|---|------|---------|---------|-------------------|-------|-------|-----|
+Bilan W-L : ___ | Sur cette surface : ___
+
+Joueur B — 10 derniers matchs :
+| # | Date | Tournoi | Surface | Adversaire (rang) | Score | Duree | W/L |
+|---|------|---------|---------|-------------------|-------|-------|-----|
+Bilan W-L : ___ | Sur cette surface : ___
+
+Qualite des victoires (% adversaires top 50) : A = ___% | B = ___%
 
 1.5 H2H COMPLET
-→ atptour.com H2H > tennisexplorer.com
-| Date | Tournoi | Surface | Score | Coeff recence |
-|------|---------|---------|-------|---------------|
-| | | | | <12m=1.0 / 12-24=0.7 / 24-36=0.5 / >36=0.3 |
-Bonus meme surface : coeff x1.3
+RECHERCHES A EFFECTUER :
+  1. Chercher "[Joueur A] vs [Joueur B] head to head" sur atptour.com (section H2H)
+  2. Fallback : chercher "[Joueur A] vs [Joueur B] h2h" sur tennisexplorer.com
+  3. Fallback : chercher "[Joueur A] [Joueur B] h2h tennis" sur Google
+
+| # | Date | Tournoi | Surface | Score | Duree | Coeff recence | Source |
+|---|------|---------|---------|-------|-------|---------------|--------|
+| | | | | | | <12m=1.0 / 12-24=0.7 / 24-36=0.5 / >36=0.3 | |
+Bonus meme surface que le match actuel : coeff x1.3
 % victoires pondere A = ___
 
+Bilan global H2H : A mene ___-___
+Bilan sur cette surface : A mene ___-___
+Pattern notable : [serveur dominant, tie-breaks, etc.]
+
 1.6 SURFACE & HISTORIQUE TOURNOI
-→ tennisabstract.com (filtre surface)
-| Donnee                    | Joueur A      | Joueur B      |
-|---------------------------|---------------|---------------|
-| W-L sur cette surface (saison) |           |               |
-| W-L dans ce tournoi (carriere) |           |               |
-| Meilleur resultat tournoi  |              |               |
+RECHERCHES A EFFECTUER :
+  1. Chercher "[Joueur A] [surface] record 2024-25" sur tennisabstract.com (filtre surface)
+  2. Chercher "[Joueur B] [surface] record 2024-25" sur tennisabstract.com
+  3. Chercher "[Joueur A] [nom tournoi] results" sur atptour.com (historique tournoi)
+  4. Chercher "[Joueur B] [nom tournoi] results" sur atptour.com
 
-1.7 BLESSURES & CONDITION
-→ tennisexplorer.com/list-players/injured + rotowire.com/tennis
-| Donnee                    | Joueur A      | Joueur B      |
-|---------------------------|---------------|---------------|
-| Blessure recente (<3 mois)|               |               |
-| Matchs joues 14 derniers j|               |               |
-| MTO recents               |               |               |
+| Donnee                            | Joueur A      | Joueur B      | Source |
+|-----------------------------------|---------------|---------------|--------|
+| W-L sur cette surface (saison)    |               |               |        |
+| W-L sur cette surface (carriere)  |               |               |        |
+| W-L dans ce tournoi (carriere)    |               |               |        |
+| Meilleur resultat dans ce tournoi |               |               |        |
+| W-L au tour actuel (carriere)     |               |               |        |
 
-1.8 COTES MARCHE
-→ oddsportal.com
-| Book        | Cote A | Cote B |
-|-------------|--------|--------|
-| ParionsSport|        |        |
-| Pinnacle    |        |        |
-| Betclic     |        |        |
-Mouvement de ligne : ___
+1.7 BLESSURES & CONDITION PHYSIQUE
+RECHERCHES A EFFECTUER :
+  1. Chercher "[Joueur A] injury 2025" sur tennisexplorer.com ou Google actualites
+  2. Chercher "[Joueur B] injury 2025" sur tennisexplorer.com ou Google actualites
+  3. Chercher "tennis injuries list" sur rotowire.com/tennis/injury-report.php
+  4. Verifier le calendrier recent : combien de matchs en 14 jours ?
 
-▶ STOP — Affiche TOUT le contenu ci-dessus AVANT de passer a la Phase 2.
+| Donnee                    | Joueur A      | Joueur B      | Source |
+|---------------------------|---------------|---------------|--------|
+| Blessure recente (<3 mois)|               |               |        |
+| MTO recents (medical timeout)|             |               |        |
+| Matchs joues 14 derniers j|               |               |        |
+| Duree totale matchs 7j    |               |               |        |
+| Abandon/forfait recent    |               |               |        |
+
+1.8 COTES & MOUVEMENT DE MARCHE
+RECHERCHES A EFFECTUER :
+  1. Chercher "[Joueur A] vs [Joueur B] odds" sur oddsportal.com
+  2. Si introuvable : essayer "[Joueur A] [Joueur B] odds tennis" sur betexplorer.com
+  3. Pour Challengers/ITF : les cotes peuvent etre absentes ou limitees a 2-3 books
+     → noter [MARCHE ETROIT] si moins de 5 bookmakers disponibles
+  4. Noter les cotes d'ouverture ET actuelles pour detecter le mouvement
+  5. Comparer Pinnacle (sharp) vs ParionsSport pour detecter les ecarts
+
+| Book        | Cote A | Cote B | Source |
+|-------------|--------|--------|--------|
+| ParionsSport|        |        | pari utilisateur |
+| Pinnacle    |        |        | oddsportal |
+| Betclic     |        |        | oddsportal |
+| Winamax     |        |        | oddsportal |
+
+Mouvement de ligne : ouverture ___ → actuel ___ (direction : ___)
+Reverse line movement : ___
+
+▶ STOP — Affiche TOUT le contenu ci-dessus avec TOUTES les valeurs remplies et TOUTES les sources listees AVANT de passer a la Phase 2.
 
 ═══════════════════════════════════════════════════════
 PHASE 2 — ANALYSE MATHEMATIQUE (tous les calculs visibles)
@@ -157,6 +266,12 @@ Confiance (/20) :
 | Coherence multi vs Elo             | /5    |
 | Coherence consensus marche          | /5    |
 TOTAL : ___/20 (16-20=elevee, 12-15=moderee, <12=faible)
+
+⚠️ MALUS CONFIANCE pour tournois mineurs :
+  - Challenger sans Elo : -2 pts sur "Qualite stats"
+  - ITF / Qualifs : -3 pts sur "Qualite stats"
+  - Stats calculees manuellement (<10 matchs) : -1 pt sur "Completude"
+  - Marche etroit (<5 books) : -1 pt sur "Coherence consensus marche"
 
 Kelly/4 = (P_finale * cote - 1) / (cote - 1) / 4 = ___% bankroll
 

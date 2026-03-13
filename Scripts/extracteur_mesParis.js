@@ -20,12 +20,15 @@
     function matchSportStr(str) {
         const s = str.toLowerCase();
         if (s.includes('football') || s.includes('foot') || s.includes('soccer')) return 'Football';
+        if (s.includes('tennis-de-table') || s.includes('tennis de table') ||
+            s.includes('table-tennis')   || s.includes('table tennis')   ||
+            s.includes('ping-pong')      || s.includes('ping pong'))             return 'Tennis de table';
         if (s.includes('tennis'))                                                  return 'Tennis';
         if (s.includes('basketball') || s.includes('basket'))                     return 'Basketball';
         if (s.includes('handball'))                                                return 'Handball';
         if (s.includes('volleyball') || s.includes('volley'))                     return 'Volley Ball';
         if (s.includes('rugby'))                                                   return 'Rugby';
-        if (s.includes('hockey'))                                                  return 'Hockey';
+        if (s.includes('hockey sur glace') || s.includes('ice hockey') || s.includes('hockey')) return 'Hockey';
         if (s.includes('snooker'))                                                 return 'Snooker';
         return null;
     }

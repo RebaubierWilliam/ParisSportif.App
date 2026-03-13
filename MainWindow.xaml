@@ -332,6 +332,16 @@
                     Click="BtnCollerDeepSeek_Click"
                     Margin="0,0,12,0"
                     ToolTip="Colle le contenu du presse-papier dans le chat DeepSeek"/>
+            <Button Content="🔄 Chercher d'autres sources (phase 2)"
+                    Style="{StaticResource BtnPrimary}"
+                    Click="BtnAutresSourcesDeepSeek_Click"
+                    Margin="0,0,12,0"
+                    ToolTip="Injecte un prompt pour chercher d'autres sources et relancer la phase 2"/>
+            <Button Content="📊 Rétrospective"
+                    Style="{StaticResource BtnSecondary}"
+                    Click="BtnRetroDeepSeek_Click"
+                    Margin="0,0,12,0"
+                    ToolTip="Copie et injecte le prompt de rétrospective pour évaluer la pertinence de l'analyse après le match"/>
             <TextBlock VerticalAlignment="Center" FontSize="11"
                        Foreground="{StaticResource MutedBrush}"
                        Text="💡 Active 🔍 Search dans DeepSeek avant de coller pour les cotes en temps réel"/>

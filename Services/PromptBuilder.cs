@@ -172,10 +172,15 @@ public static class PromptBuilder
     {
         var fileName = (sport ?? "").ToLowerInvariant() switch
         {
-            "football" or "foot" or "soccer" => "agent_foot.md",
-            "tennis"                          => "agent_tennis.md",
-            "basketball" or "basket"          => "agent_basketball.md",
-            _                                 => "agent_autres.md",
+            "football" or "foot" or "soccer"                          => "agent_foot.md",
+            "tennis"                                                   => "agent_tennis.md",
+            "basketball" or "basket"                                   => "agent_basketball.md",
+            "hockey" or "hockey sur glace" or "ice hockey"            => "agent_hockey.md",
+            "volleyball" or "volley" or "volley-ball" or "volley ball" => "agent_volleyball.md",
+            "tennis de table" or "ping pong" or "table tennis" or "tt" => "agent_tennis_table.md",
+            "rugby" or "rugby union" or "rugby league" or "rugby à xv" or "rugby a xv" or "rugby à xiii" or "rugby a xiii" => "agent_rugby.md",
+            "handball" or "hand"                                       => "agent_handball.md",
+            _                                                          => "agent_autres.md",
         };
         var t = LoadTemplate(fileName);
         return t.Length > 0 ? t : LoadTemplate("agent_autres.md");

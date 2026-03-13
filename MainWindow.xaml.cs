@@ -346,4 +346,68 @@ public partial class MainWindow : Window
             _vm.Log("⚠️ Zone de texte DeepSeek introuvable — colle manuellement (Ctrl+V).");
     }
 
+    // ── Bouton Rétrospective : évaluation du modèle après le match ────────
+    private async void BtnRetroDeepSeek_Click(object sender, RoutedEventArgs e)
+    {
+        var path = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Resources", "Prompts", "retrospective.md");
+
+        if (!File.Exists(path))
+        {
+            _vm.Log("⚠️ Fichier retrospective.md introuvable.");
+            return;
+        }
+
+        var prompt  = File.ReadAllText(path, System.Text.Encoding.UTF8);
+        var escaped = System.Text.Json.JsonSerializer.Serialize(prompt);
+
+        Clipboard.SetText(prompt);
+
+        var script = $$"""
+            (function() {
+                var text = {{escaped}};
+                var el = document.querySelector('textarea')
+                      || document.querySelector('[contenteditable="true"]');
+                if (!el) return 'NOT_FOUND';
+                el.focus();
+                document.execCommand('selectAll');
+                document.execCommand('insertText', false, text);
+                return 'OK';
+            })()
+            """;
+
+        var result = await WebViewDS.ExecuteScriptAsync(script);
+        if (result == "\"OK\"")
+            _vm.Log("📊 Prompt rétrospective injecté dans DeepSeek — complète le résultat réel puis envoie.");
+        else
+            _vm.Log("📊 Prompt rétrospective copié — colle manuellement (Ctrl+V) dans DeepSeek.");
+    }
+
+    // ── Bouton "Chercher d'autres sources + relancer phase 2" ──────────────
+    private async void BtnAutresSourcesDeepSeek_Click(object sender, RoutedEventArgs e)
+    {
+        const string prompt = "Essaye de chercher d'autres sources pour augmenter la confiance et refais la phase 2";
+        var escaped = System.Text.Json.JsonSerializer.Serialize(prompt);
+
+        var script = $$"""
+            (function() {
+                var text = {{escaped}};
+                var el = document.querySelector('textarea')
+                      || document.querySelector('[contenteditable="true"]');
+                if (!el) return 'NOT_FOUND';
+                el.focus();
+                document.execCommand('selectAll');
+                document.execCommand('insertText', false, text);
+                return 'OK';
+            })()
+            """;
+
+        var result = await WebViewDS.ExecuteScriptAsync(script);
+        if (result == "\"OK\"")
+            _vm.Log("🔄 Prompt 'autres sources + phase 2' injecté dans DeepSeek.");
+        else
+            _vm.Log("⚠️ Zone de texte DeepSeek introuvable — colle manuellement (Ctrl+V).");
+    }
+
 }

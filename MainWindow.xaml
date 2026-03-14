@@ -50,39 +50,8 @@
       <!-- ── Onglet 1 : Paris extraits (s'active automatiquement) ── -->
       <TabItem x:Name="TabParis" Header="📊 Paris extraits">
         <Grid>
-          <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-          </Grid.RowDefinitions>
-
-          <!-- Barre d'info -->
-          <Border Grid.Row="0" Background="#F8F9FA"
-                  BorderBrush="#E0E6ED" BorderThickness="0,0,0,1"
-                  Padding="12,8">
-            <StackPanel Orientation="Horizontal">
-              <TextBlock VerticalAlignment="Center" Margin="0,0,20,0"
-                         FontWeight="SemiBold" Foreground="{StaticResource TextBrush}">
-                <Run Text="📋 Paris : "/>
-                <Run Text="{Binding TotalParis, Mode=OneWay}" FontWeight="Bold"
-                     Foreground="{StaticResource PrimaryBrush}"/>
-                <Run Text=" | 🔴 Live : "/>
-                <Run Text="{Binding LiveCount, Mode=OneWay}" FontWeight="Bold"
-                     Foreground="{StaticResource LiveBrush}"/>
-              </TextBlock>
-              <CheckBox Content="🔴 Live seulement" VerticalAlignment="Center"
-                        IsChecked="{Binding ShowLiveOnly}" FontSize="12"
-                        Margin="0,0,16,0"/>
-              <Button Content="🔍 Scan Value bookmakers"
-                      Style="{StaticResource BtnPrimary}"
-                      Click="BtnScanValue_Click"
-                      FontSize="12" Padding="12,5"
-                      Margin="0,0,8,0"
-                      ToolTip="Génère un prompt comparant tes cotes avec Pinnacle, Betclic, Winamax, Bet365 pour détecter les value bets"/>
-            </StackPanel>
-          </Border>
-
           <!-- DataGrid — 8 colonnes visibles avec wrap multi-lignes -->
-          <DataGrid Grid.Row="1"
+          <DataGrid
                     x:Name="PariGrid"
                     ItemsSource="{Binding Paris}"
                     SelectedItem="{Binding SelectedPari}"
@@ -337,11 +306,16 @@
                     Click="BtnAutresSourcesDeepSeek_Click"
                     Margin="0,0,12,0"
                     ToolTip="Injecte un prompt pour chercher d'autres sources et relancer la phase 2"/>
-            <Button Content="📊 Rétrospective"
+<Button Content="🌐 Tips Scanner"
                     Style="{StaticResource BtnSecondary}"
-                    Click="BtnRetroDeepSeek_Click"
+                    Click="BtnTipsScannerDeepSeek_Click"
+                    Margin="0,0,4,0"
+                    ToolTip="Scanne le web et les réseaux sociaux pour collecter tous les tips de paris disponibles"/>
+            <Button Content="🔄 + Tips"
+                    Style="{StaticResource BtnSecondary}"
+                    Click="BtnTipsContinueDeepSeek_Click"
                     Margin="0,0,12,0"
-                    ToolTip="Copie et injecte le prompt de rétrospective pour évaluer la pertinence de l'analyse après le match"/>
+                    ToolTip="Continue la recherche de tips et reconstruit le tableau complet (à utiliser dans le même thread)"/>
             <TextBlock VerticalAlignment="Center" FontSize="11"
                        Foreground="{StaticResource MutedBrush}"
                        Text="💡 Active 🔍 Search dans DeepSeek avant de coller pour les cotes en temps réel"/>

@@ -15,7 +15,16 @@ PHASE 1 — COLLECTE DE DONNEES (affiche tout avant Phase 2)
 ⚠️ REGLE ABSOLUE : Recherche web OBLIGATOIRE pour CHAQUE section.
 Tu dois effectuer AU MINIMUM 15 recherches web distinctes en Phase 1.
 Chaque tableau doit contenir des VALEURS CONCRETES (chiffres, scores, dates).
-Si introuvable apres 2 sources : [DONNEE MANQUANTE — Confiance reduite].
+PROTOCOLE D'ESCALADE AUTOMATIQUE — a appliquer SANS attendre l'utilisateur :
+  Tentative 1 : requete standard sur la source prioritaire du tier
+  Tentative 2 : REFORMULER — changer les termes :
+    → Langue : essayer en anglais ET dans la langue locale du pays
+    → Nom : nom complet ↔ abreviation ↔ nom dans l'autre langue
+    → Termes : varier "stats" / "statistics" / "resultats" / "classement" / "standings"
+  Tentative 3 : CHANGER DE SOURCE — passer a la source suivante dans la hierarchie
+  Tentative 4 : SOURCE ALTERNATIVE — Google News, Wikipedia, site officiel club/federation
+  Tentative 5 : CALCUL MANUEL — si donnees brutes disponibles, calculer soi-meme
+  → Seulement apres ces 5 tentatives : marquer [DONNEE MANQUANTE CONFIRMEE]
 INTERDICTION d'inventer ou estimer une donnee sans source.
 
 ╔═══════════════════════════════════════════════════════════════╗
@@ -276,6 +285,29 @@ Pinnacle = reference sharp. Si ecart > 10 centimes avec ParionsSport → signal.
   - Steam move (mouvement rapide unidirectionnel) = argent sharp → SUIVRE
   - Mouvement vers le favori = public money → potentiel overlay underdog
   - Cotes stables = consensus fort → difficile de trouver de la value
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BILAN PHASE 1 — BOUCLE AUTO-COMPLETION (OBLIGATOIRE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A la fin de la collecte, evaluer AUTOMATIQUEMENT :
+  Nb_manquantes = compter tous les [DONNEE MANQUANTE CONFIRMEE]
+  Confiance_brute = 25 - (Nb_manquantes * 2) - malus_tier (Tier2=-2, Tier3=-3)
+
+⚠️ BOUCLE OBLIGATOIRE — repeter SANS attendre l'utilisateur :
+  TANT QUE Confiance_brute < 18/25 ET nb_recherches_total < 30 :
+    1. Classer les donnees manquantes par IMPACT sur le verdict :
+       Priorite : donnees de scoring (xG/lambda) > classement/Elo > forme >
+                  H2H > absences > cotes > contexte
+    2. Pour chaque donnee manquante (par ordre d'impact) :
+       → Appliquer le PROTOCOLE D'ESCALADE complet (5 tentatives)
+       → Si trouvee : retirer le tag [DONNEE MANQUANTE] et recalculer confiance
+    3. Recalculer Confiance_brute apres chaque donnee retrouvee
+  FIN BOUCLE
+
+VERDICT COLLECTE :
+  >= 18/25 : ✅ [COLLECTE SUFFISANTE] → passer en Phase 2
+  12-17/25 : ⚠️ [COLLECTE PARTIELLE — resultats a ponderer] → Phase 2 avec avertissement
+  < 12/25  : ❌ [COLLECTE INSUFFISANTE — analyse non fiable] → Phase 2 avec forte incertitude
 
 ▶ STOP — Affiche TOUT le contenu ci-dessus avec TOUTES les valeurs remplies
   et TOUTES les sources listees AVANT de passer a la Phase 2.

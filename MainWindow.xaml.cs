@@ -325,7 +325,49 @@ public partial class MainWindow : Window
     // ── Bouton "Chercher d'autres sources + relancer phase 2" ──────────────
     private async void BtnAutresSourcesDeepSeek_Click(object sender, RoutedEventArgs e)
     {
-        const string prompt = "Essaye de chercher d'autres sources pour augmenter la confiance et refais la phase 2";
+        const string prompt = """
+            La Phase 1 s'est terminee avec une confiance insuffisante (< 21/25).
+
+            MISSION : Consolider toutes les donnees collectees et atteindre une confiance >= 21/25, puis executer la Phase 2 complete.
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ETAPE 1 — AUDIT DES LACUNES
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Lister TOUTES les donnees marquees [DONNEE MANQUANTE CONFIRMEE] ou avec un score faible, classees par impact decroissant sur la confiance (scoring > classement > forme > H2H > absences > cotes).
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ETAPE 2 — RECHERCHE DE NOUVELLES SOURCES (obligatoire)
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Minimum 10 nouvelles recherches web ciblant les donnees a fort impact.
+            Pour chaque donnee manquante, dans cet ordre strict :
+              1. Sources NON encore consultees (elargir au-dela des sources habituelles)
+              2. Changer de langue : anglais ET langue locale du pays
+              3. Comptes officiels X/Twitter des clubs, federations, journalistes specialises
+              4. Google Actualites avec termes varies ("[equipe] stats", "[equipe] resultats", "[equipe] news")
+              5. Calcul manuel a partir des donnees brutes si disponibles
+            INTERDICTION d'inventer ou d'estimer sans source verifiable.
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ETAPE 3 — CONSOLIDATION COMPLETE
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Mettre a jour TOUS les tableaux Phase 1 avec les nouvelles donnees trouvees.
+            Remplacer chaque [DONNEE MANQUANTE CONFIRMEE] par la valeur reelle si trouvee.
+            Recalculer le score de confiance (/25) selon les memes criteres et malus.
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            ETAPE 4 — REEVALUATION ET DECISION
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Afficher le bilan Phase 1 consolide complet (tous tableaux mis a jour + sources).
+            Afficher le nouveau score de confiance detaille (criteres + malus).
+
+            SI Confiance_nouvelle >= 21/25 :
+              → ✅ CONFIANCE ATTEINTE — executer la Phase 2 complete immediatement.
+
+            SI Confiance_nouvelle < 21/25 :
+              → ⚠️ Indiquer le score atteint, les donnees encore manquantes et leur impact residuel.
+              → Executer quand meme la Phase 2 en signalant clairement chaque limitation.
+            """;
+
         var escaped = System.Text.Json.JsonSerializer.Serialize(prompt);
 
         var script = $$"""

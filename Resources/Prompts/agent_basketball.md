@@ -247,7 +247,7 @@ A la fin de la collecte, evaluer AUTOMATIQUEMENT :
   Confiance_brute = 25 - (Nb_manquantes * 2) - malus_tier (Tier2=-2, Tier3=-3)
 
 ⚠️ BOUCLE OBLIGATOIRE — repeter SANS attendre l'utilisateur :
-  TANT QUE Confiance_brute < 18/25 ET nb_recherches_total < 30 :
+  TANT QUE Confiance_brute < 21/25 ET nb_recherches_total < 30 :
     1. Classer les donnees manquantes par IMPACT sur le verdict :
        Priorite : donnees de scoring (ORTG/DRTG/Four Factors) > classement/Elo > forme >
                   H2H > absences > cotes > contexte
@@ -258,11 +258,17 @@ A la fin de la collecte, evaluer AUTOMATIQUEMENT :
   FIN BOUCLE
 
 VERDICT COLLECTE :
-  >= 18/25 : ✅ [COLLECTE SUFFISANTE] → passer en Phase 2
-  12-17/25 : ⚠️ [COLLECTE PARTIELLE — resultats a ponderer] → Phase 2 avec avertissement
-  < 12/25  : ❌ [COLLECTE INSUFFISANTE — analyse non fiable] → Phase 2 avec forte incertitude
+  >= 21/25 : ✅ [CONFIANCE SUFFISANTE — PHASE 2 AUTORISEE] → passer en Phase 2
+  < 21/25  : 🛑 [PHASE 2 BLOQUEE — CONFIANCE INSUFFISANTE __/25]
+             → Afficher le score de confiance detaille (chaque critere + malus appliques)
+             → Lister les donnees manquantes par ordre d'impact decroissant
+             → NE PAS executer la Phase 2
+             → Indiquer : "Confiance insuffisante (__/25 < 21/25).
+               Utilisez le bouton 🔄 pour enrichir les donnees et
+               rehausser la confiance au-dessus de 21/25."
 
 ▶ STOP — Affiche TOUT le contenu ci-dessus avec TOUTES les valeurs remplies et TOUTES les sources listees AVANT de passer a la Phase 2.
+  Si confiance < 21/25 : STOP DEFINITIF — ne pas generer la Phase 2.
 
 ═══════════════════════════════════════════════════════
 PHASE 2 — ANALYSE MATHEMATIQUE (tous les calculs visibles)
@@ -449,3 +455,37 @@ RECOMMANDATION FINALE
 ║ FACTEURS CLES : 1. ___ 2. ___ 3. ___                        ║
 ║ RISQUES : 1. ___ 2. ___                                      ║
 ╚═══════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════
+PARIS ANNEXES A VALUE
+═══════════════════════════════════════════════════════
+A partir des probabilites et lambdas calcules en Phase 2, lister TOUS les paris
+annexes presentant une value positive. Pour chaque pari, calculer la cote seuil
+(= 1 / P_simulee) : c'est la cote MINIMUM a partir de laquelle le pari devient rentable.
+
+| # | Marche                   | Selection    | P.simulee | Cote seuil | Cote marche | EV     | Verdict       |
+|---|--------------------------|--------------|-----------|------------|-------------|--------|---------------|
+| 1 | Match winner             | [Equipe]     |     %     |            |             |        |               |
+| 2 | Handicap -X.5            | [Equipe]     |     %     |            |             |        |               |
+| 3 | Handicap +X.5            | [Equipe]     |     %     |            |             |        |               |
+| 4 | Total points Over X.5    |              |     %     |            |             |        |               |
+| 5 | Total points Under X.5   |              |     %     |            |             |        |               |
+| 6 | Total equipe Over X.5    | [Equipe]     |     %     |            |             |        |               |
+| 7 | 1er quart-temps winner   | [Equipe]     |     %     |            |             |        |               |
+| 8 | Mi-temps winner          | [Equipe]     |     %     |            |             |        |               |
+| 9 | Ecart victoire 1-5/6-10  | [Equipe]     |     %     |            |             |        |               |
+|10 | Over/Under mi-temps      | [O/U X.5]    |     %     |            |             |        |               |
+
+Cote seuil = 1 / P_simulee → si Cote marche > Cote seuil alors VALUE BET (EV > 0)
+
+⚠️ REGLES :
+- Ne lister dans le verdict final que les paris ou EV > +0.03 (3% de value minimum)
+- Classer par EV decroissante (meilleure value en premier)
+- Si cote marche introuvable : indiquer [A VERIFIER] + donner la cote seuil
+- Utiliser le pace et les ORTG/DRTG pour estimer les totaux de points
+- Pour les handicaps : estimer via l'ecart de score attendu (lambda_A - lambda_B)
+
+TOP 3 PARIS ANNEXES RECOMMANDES (classes par EV) :
+  1. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___
+  2. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___
+  3. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___

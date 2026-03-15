@@ -294,7 +294,7 @@ A la fin de la collecte, evaluer AUTOMATIQUEMENT :
   Confiance_brute = 25 - (Nb_manquantes * 2) - malus_tier (Tier2=-2, Tier3=-3)
 
 ⚠️ BOUCLE OBLIGATOIRE — repeter SANS attendre l'utilisateur :
-  TANT QUE Confiance_brute < 18/25 ET nb_recherches_total < 30 :
+  TANT QUE Confiance_brute < 21/25 ET nb_recherches_total < 30 :
     1. Classer les donnees manquantes par IMPACT sur le verdict :
        Priorite : donnees de scoring (xG/lambda) > classement/Elo > forme >
                   H2H > absences > cotes > contexte
@@ -305,12 +305,18 @@ A la fin de la collecte, evaluer AUTOMATIQUEMENT :
   FIN BOUCLE
 
 VERDICT COLLECTE :
-  >= 18/25 : ✅ [COLLECTE SUFFISANTE] → passer en Phase 2
-  12-17/25 : ⚠️ [COLLECTE PARTIELLE — resultats a ponderer] → Phase 2 avec avertissement
-  < 12/25  : ❌ [COLLECTE INSUFFISANTE — analyse non fiable] → Phase 2 avec forte incertitude
+  >= 21/25 : ✅ [CONFIANCE SUFFISANTE — PHASE 2 AUTORISEE] → passer en Phase 2
+  < 21/25  : 🛑 [PHASE 2 BLOQUEE — CONFIANCE INSUFFISANTE __/25]
+             → Afficher le score de confiance detaille (chaque critere + malus appliques)
+             → Lister les donnees manquantes par ordre d'impact decroissant
+             → NE PAS executer la Phase 2
+             → Indiquer : "Confiance insuffisante (__/25 < 21/25).
+               Utilisez le bouton 🔄 pour enrichir les donnees et
+               rehausser la confiance au-dessus de 21/25."
 
 ▶ STOP — Affiche TOUT le contenu ci-dessus avec TOUTES les valeurs remplies
   et TOUTES les sources listees AVANT de passer a la Phase 2.
+  Si confiance < 21/25 : STOP DEFINITIF — ne pas generer la Phase 2.
 
 ═══════════════════════════════════════════════════════
 PHASE 2 — ANALYSE MATHEMATIQUE (tous les calculs visibles)
@@ -558,3 +564,44 @@ RECOMMANDATION FINALE
 ║ RISQUES : 1. ___ 2. ___                                      ║
 ║ ROBUSTESSE : [ROBUSTE / ACCEPTABLE / FRAGILE]                ║
 ╚═══════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════
+PARIS ANNEXES A VALUE
+═══════════════════════════════════════════════════════
+A partir de la matrice de Poisson calculee en Phase 2, lister TOUS les paris
+annexes presentant une value positive. Pour chaque pari, calculer la cote seuil
+(= 1 / P_simulee) : c'est la cote MINIMUM a partir de laquelle le pari devient rentable.
+
+| # | Marche              | Selection        | P.simulee | Cote seuil | Cote marche | EV     | Verdict       |
+|---|---------------------|------------------|-----------|------------|-------------|--------|---------------|
+| 1 | 1N2                 | [1/N/2]          |     %     |            |             |        |               |
+| 2 | Double chance        | [1X/X2/12]       |     %     |            |             |        |               |
+| 3 | BTTS Oui            |                  |     %     |            |             |        |               |
+| 4 | BTTS Non            |                  |     %     |            |             |        |               |
+| 5 | Over 1.5            |                  |     %     |            |             |        |               |
+| 6 | Under 1.5           |                  |     %     |            |             |        |               |
+| 7 | Over 2.5            |                  |     %     |            |             |        |               |
+| 8 | Under 2.5           |                  |     %     |            |             |        |               |
+| 9 | Over 3.5            |                  |     %     |            |             |        |               |
+|10 | Handicap -1         | [Equipe]         |     %     |            |             |        |               |
+|11 | Handicap +1         | [Equipe]         |     %     |            |             |        |               |
+|12 | Score exact (top 3) | [X-X]            |     %     |            |             |        |               |
+|13 | Mi-temps/Fin match  | [X/X]            |     %     |            |             |        |               |
+|14 | Equipe marque 1ere  | [Equipe]         |     %     |            |             |        |               |
+|15 | Clean sheet         | [Equipe]         |     %     |            |             |        |               |
+
+Cote seuil = 1 / P_simulee → si Cote marche > Cote seuil alors VALUE BET (EV > 0)
+
+⚠️ REGLES :
+- Ne lister dans le verdict final que les paris ou EV > +0.03 (3% de value minimum)
+- Classer par EV decroissante (meilleure value en premier)
+- Si cote marche introuvable : indiquer [A VERIFIER] + donner la cote seuil
+  pour que l'utilisateur puisse comparer lui-meme chez son bookmaker
+- Les probabilites DOIVENT etre coherentes avec la matrice de Poisson (Phase 2)
+- Inclure aussi les combinaisons de marches si elles presentent de la value
+  (ex: "BTTS Oui + Over 2.5" si les deux ont une EV positive)
+
+TOP 3 PARIS ANNEXES RECOMMANDES (classes par EV) :
+  1. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___
+  2. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___
+  3. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___

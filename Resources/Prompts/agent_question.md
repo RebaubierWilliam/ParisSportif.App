@@ -252,7 +252,7 @@ A la fin de la collecte, evaluer AUTOMATIQUEMENT :
   Confiance_brute = 25 - (Nb_manquantes * 2) - malus_tier (Tier2=-2, Tier3=-3)
 
 ⚠️ BOUCLE OBLIGATOIRE — repeter SANS attendre l'utilisateur :
-  TANT QUE Confiance_brute < 18/25 ET nb_recherches_total < 30 :
+  TANT QUE Confiance_brute < 21/25 ET nb_recherches_total < 30 :
     1. Classer les donnees manquantes par IMPACT sur le verdict :
        Priorite : stats joueur (game log/moyenne) > matchup defensif > forme >
                   H2H > blessures > cotes > contexte equipe
@@ -263,11 +263,17 @@ A la fin de la collecte, evaluer AUTOMATIQUEMENT :
   FIN BOUCLE
 
 VERDICT COLLECTE :
-  >= 18/25 : ✅ [COLLECTE SUFFISANTE] → passer en Phase 2
-  12-17/25 : ⚠️ [COLLECTE PARTIELLE — resultats a ponderer] → Phase 2 avec avertissement
-  < 12/25  : ❌ [COLLECTE INSUFFISANTE — analyse non fiable] → Phase 2 avec forte incertitude
+  >= 21/25 : ✅ [CONFIANCE SUFFISANTE — PHASE 2 AUTORISEE] → passer en Phase 2
+  < 21/25  : 🛑 [PHASE 2 BLOQUEE — CONFIANCE INSUFFISANTE __/25]
+             → Afficher le score de confiance detaille (chaque critere + malus appliques)
+             → Lister les donnees manquantes par ordre d'impact decroissant
+             → NE PAS executer la Phase 2
+             → Indiquer : "Confiance insuffisante (__/25 < 21/25).
+               Utilisez le bouton 🔄 pour enrichir les donnees et
+               rehausser la confiance au-dessus de 21/25."
 
 ▶ STOP — Affiche TOUT le contenu ci-dessus avec TOUTES les valeurs remplies et TOUTES les sources listees AVANT de passer a la Phase 2.
+  Si confiance < 21/25 : STOP DEFINITIF — ne pas generer la Phase 2.
 
 ═══════════════════════════════════════════════════════
 PHASE 2 — ESTIMATION PROBABILITE (calculs visibles)
@@ -450,3 +456,34 @@ RECOMMANDATION FINALE
 ║ REGRESSION MOYENNE : [Oui streak actif — prudence / Non]      ║
 ║ MOUVEMENT COTES : [Stable / Hausse / Baisse] depuis ouverture ║
 ╚═══════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════
+PARIS ANNEXES A VALUE (PROPS COMPLEMENTAIRES)
+═══════════════════════════════════════════════════════
+A partir des probabilites calculees en Phase 2, lister d'autres props ou
+paris joueur presentant une value positive sur le meme match.
+Pour chaque pari, calculer la cote seuil (= 1 / P_simulee) : c'est la cote
+MINIMUM a partir de laquelle le pari devient rentable.
+
+| # | Marche / Prop            | Selection    | P.simulee | Cote seuil | Cote marche | EV     | Verdict       |
+|---|--------------------------|--------------|-----------|------------|-------------|--------|---------------|
+| 1 | [Prop principal analyse] | [Over/Under] |     %     |            |             |        |               |
+| 2 | [Autre prop meme joueur] | [Over/Under] |     %     |            |             |        |               |
+| 3 | [Prop combo]             |              |     %     |            |             |        |               |
+| 4 | [Prop adverse/coequipier]|              |     %     |            |             |        |               |
+| 5 | [Match winner]           | [Equipe]     |     %     |            |             |        |               |
+
+→ Adapter les marches au sport et au type de prop (buts, passes, rebonds, aces, etc.)
+
+Cote seuil = 1 / P_simulee → si Cote marche > Cote seuil alors VALUE BET (EV > 0)
+
+⚠️ REGLES :
+- Ne lister dans le verdict final que les paris ou EV > +0.03 (3% de value minimum)
+- Classer par EV decroissante (meilleure value en premier)
+- Si cote marche introuvable : indiquer [A VERIFIER] + donner la cote seuil
+- Chercher les props complementaires sur le meme match (meme joueur + coequipiers)
+
+TOP 3 PARIS ANNEXES RECOMMANDES (classes par EV) :
+  1. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___
+  2. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___
+  3. [Marche] @ [cote] → EV = +X.XX | Cote seuil = X.XX | Confiance : ___

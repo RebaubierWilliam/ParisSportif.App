@@ -21,6 +21,21 @@ public static class PromptBuilder
         p.IsQuestion ? BuildAgentQuestion(p)
                       : BuildAgentValueBet(p);
 
+    /// <summary>Prompt Mamouth 2 phases séparées (&lt;800 mots chacune).</summary>
+    public static (string Phase1, string Phase2) BuildMamouth(Pari p)
+    {
+        var header = BuildMamouthHeader(p);
+        var template = LoadMamouthTemplate(p.Sport);
+        var parts = template.Split(new[] { "===PHASE2===" }, 2, StringSplitOptions.None);
+
+        var phase1 = header + "\n\n" + parts[0].Trim();
+        var phase2 = parts.Length > 1
+            ? parts[1].Trim()
+            : "Phase 2 non trouvée dans le template.";
+
+        return (phase1, phase2);
+    }
+
     // ── Prompts complets — protocole intégré ────────────────────────────────
 
     private static string BuildFullValueBet(Pari p)
@@ -184,6 +199,36 @@ public static class PromptBuilder
         };
         var t = LoadTemplate(fileName);
         return t.Length > 0 ? t : LoadTemplate("agent_autres.md");
+    }
+
+    // ── Mamouth — header + template ──────────────────────────────────────────
+
+    private static string BuildMamouthHeader(Pari p)
+    {
+        var lines = new List<string>
+        {
+            $"Match : {p.MatchLabel}",
+            $"Sport : {p.Sport}",
+        };
+        if (p.IsQuestion)
+            lines.Add($"Question : {p.Marche}");
+        lines.Add($"Selection : {p.Selection} @ cote {p.Cote}");
+        lines.Add($"Marche : {p.Marche}");
+        lines.Add($"Date : {p.DatePari} {p.MinuteOuHeure}");
+        return string.Join("\n", lines);
+    }
+
+    private static string LoadMamouthTemplate(string sport)
+    {
+        var fileName = (sport ?? "").ToLowerInvariant() switch
+        {
+            "football" or "foot" or "soccer"                          => "mamouth_foot.md",
+            "tennis"                                                   => "mamouth_tennis.md",
+            "basketball" or "basket"                                   => "mamouth_basketball.md",
+            _                                                          => "mamouth_autres.md",
+        };
+        var t = LoadTemplate(fileName);
+        return t.Length > 0 ? t : LoadTemplate("mamouth_autres.md");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

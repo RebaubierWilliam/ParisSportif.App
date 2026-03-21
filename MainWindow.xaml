@@ -268,6 +268,7 @@
                               FontSize="12" Padding="8,5"
                               Tag="{Binding}"
                               Click="BtnPromptComplet_Click"
+                              Visibility="Collapsed"
                               ToolTip="Prompt complet autonome — données + protocole intégré"/>
                       <Button Content="🔬 Agent"
                               Style="{StaticResource BtnSecondary}"
@@ -275,7 +276,15 @@
                               Margin="0,4,0,0"
                               Tag="{Binding}"
                               Click="BtnPromptAgent_Click"
+                              Visibility="Collapsed"
                               ToolTip="Prompt 2 phases : collecte structurée + analyse mathématique (~120 lignes)"/>
+                      <Button Content="🦣 Mamouth"
+                              Style="{StaticResource BtnSecondary}"
+                              FontSize="12" Padding="8,5"
+                              Margin="0,4,0,0"
+                              Tag="{Binding}"
+                              Click="BtnPromptMamouth_Click"
+                              ToolTip="Prompt 2 phases optimisé (&lt;800 mots/phase) — copie Phase 1 puis Phase 2"/>
                     </StackPanel>
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
@@ -287,7 +296,7 @@
       </TabItem>
 
       <!-- ── Onglet DeepSeek ──────────────────────────────────────────── -->
-      <TabItem x:Name="TabDeepSeek" Header="🤖 DeepSeek">
+      <TabItem x:Name="TabDeepSeek" Header="🤖 DeepSeek" Visibility="Collapsed">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -322,6 +331,41 @@
           </StackPanel>
 
           <wv2:WebView2 x:Name="WebViewDS" Grid.Row="1"/>
+        </Grid>
+      </TabItem>
+
+      <!-- ── Onglet Mamouth ────────────────────────────────────────────── -->
+      <TabItem x:Name="TabMamouth" Header="🦣 Mamouth">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+
+          <StackPanel Grid.Row="0" Orientation="Horizontal"
+                      Margin="8,6" Background="White">
+            <Button Content="📋 Coller Phase 1"
+                    Style="{StaticResource BtnPrimary}"
+                    Click="BtnCollerP1Mamouth_Click"
+                    Margin="0,0,8,0"
+                    ToolTip="Colle la Phase 1 (collecte) dans le chat Mamouth"/>
+            <Button Content="📋 Coller Phase 2"
+                    Style="{StaticResource BtnPrimary}"
+                    Click="BtnCollerP2Mamouth_Click"
+                    Margin="0,0,8,0"
+                    ToolTip="Colle la Phase 2 (analyse) dans le chat Mamouth — après la réponse Phase 1"/>
+            <Button Content="🔄 Consolider"
+                    Style="{StaticResource BtnSecondary}"
+                    Click="BtnConsoliderMamouth_Click"
+                    Margin="0,0,12,0"
+                    ToolTip="Injecte un prompt pour consolider les données manquantes et améliorer la confiance"/>
+            <TextBlock x:Name="MamouthMatchLabel"
+                       VerticalAlignment="Center" FontSize="11"
+                       Foreground="{StaticResource MutedBrush}"
+                       Text="💡 Clique 🦣 Mamouth sur un pari pour commencer"/>
+          </StackPanel>
+
+          <wv2:WebView2 x:Name="WebViewMM" Grid.Row="1"/>
         </Grid>
       </TabItem>
 

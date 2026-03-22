@@ -58,14 +58,19 @@ Tendance : en progression, stable, en baisse ?
 | Motivation / enjeu tournoi | | | |
 | Conditions (indoor/outdoor, chaleur) | | | |
 
-1.6 COTES
-| Issue | Cote | P.implicite |
-|---|---|---|
-| Joueur A | | |
-| Joueur B | | |
-| Handicap sets -1.5 A | | |
-| Over/Under total jeux | | |
-Marge bookmaker = ___%
+1.6 COTES PARIONSPORT — COLLECTE COMPLETE
+Chercher sur parionssport.fdj.fr la page du match et relever TOUTES les cotes :
+| Marche | Selection | Cote | P.impl (1/cote) |
+|---|---|---|---|
+| Vainqueur | A / B | | |
+| Handicap sets | Lignes dispo | | |
+| Handicap jeux | Lignes dispo | | |
+| Over/Under jeux | Toutes lignes | | |
+| Score exact sets | 2-0/2-1/0-2/1-2... | | |
+| Vainqueur set 1 | A / B | | |
+| Over/Under jeux set 1 | Lignes dispo | | |
+| Autres marches | Tout ce qui est dispo | | |
+Source URL complete. Si non propose → [NON PROPOSE].
 
 VERIFICATION CROISEE (OBLIGATOIRE — fais-la maintenant) :
 1. Liste TOUTES les URLs reellement consultees (URLs completes, pas domaines)
@@ -117,48 +122,36 @@ P(A) = 1 / (1 + e^(-k * delta)) avec k=6 (Bo3) ou k=8 (Bo5)
 P(B) = 1 - P(A)
 
 Cross-check Elo : P_elo(A) = 1 / (1 + 10^((Elo_B - Elo_A) / 400))
-Si ecart > 8% entre modele et Elo : signaler [DIVERGENCE].
+Si ecart > 8% : [DIVERGENCE MODELES].
 
-2.3 EV & KELLY
-EV = (P_simulee * Cote) - 1
-Kelly : f* = (P_sim * Cote - 1) / (Cote - 1)
-| Issue | Cote | P.impl | P.sim | Ecart | EV | Kelly |
-|---|---|---|---|---|---|---|
-| A | | % | % | % | | % |
-| B | | % | % | % | | % |
+Estimation sets : si P(X) > 70% → 2-0 probable, 55-70% → 2-1, <55% → match serre.
 
-2.4 MARCHES DERIVES
-| Marche | P.simulee | Cote | EV |
-|---|---|---|---|
-| Handicap sets -1.5 A | % | | |
-| Handicap sets +1.5 B | % | | |
-| Over X.5 jeux | % | | |
-| Under X.5 jeux | % | | |
+2.3 SCAN COMPLET — UTILISER LES COTES PARIONSPORT DE LA PHASE 1
+Pour CHAQUE marche collecte en 1.6, calculer P_sim et comparer a la cote reelle :
+| Marche | P.simulee | Cote PS | P.impl | EV | Kelly |
+|---|---|---|---|---|---|
+Remplir une ligne par marche/selection collecte en 1.6 (vainqueur, handicap sets/jeux, Over/Under jeux, score exact sets, set 1...).
+Ne PAS inventer de cotes — utiliser UNIQUEMENT celles collectees en Phase 1.
+Si [NON PROPOSE] → ne pas lister.
+EV = (P_sim * Cote) - 1 | Kelly = (P_sim * Cote - 1) / (Cote - 1)
 
-Estimation sets : si P(A) > 65% → 2-0 probable, sinon 2-1 probable (Bo3).
+2.4 FILTRE : PARIS DERIVES P ≥ 70% ET VALUE (EV > 0)
+Filtrer le tableau 2.3 : garder UNIQUEMENT P_sim >= 70% ET EV > 0.
+| Marche | P.sim | Cote | EV | Kelly | Robuste ? |
+|---|---|---|---|---|---|
+Pour chaque ligne, tester sensibilite -10% sur les scores :
+  Robuste = value maintenue a -10% | Fragile = value disparait a -10%
 
-2.5 SENSIBILITE +/-10%
-| Scenario | Score A | Score B | P(A) | P(B) | EV | Value? |
-|---|---|---|---|---|---|---|
-| Base | | | | | | |
-| Favorable +10% | | | | | | |
-| Defavorable -10% | | | | | | |
-| Extreme -20% | | | | | | |
-
-2.6 VERDICT
-| Ecart (Sim-Marche) | EV | Verdict |
-|---|---|---|
-| > +10% | > +0.15 | VALUE BET FORTE *** |
-| +5% a +10% | +0.05/15 | VALUE BET CONFIRMEE ** |
-| +2% a +5% | +0.02/05 | VALUE BET LEGERE * |
-| < +2% | < +0.02 | PAS DE VALUE |
+Si AUCUN derive ne passe 70%+value : baisser a 65% et signaler [SEUIL ABAISSE].
 
 RECOMMANDATION FINALE
 Match : [A] vs [B] | Tournoi : ___ | Surface : ___
-Recommandation : [Jouer X @ cote Y / Ne pas jouer]
-P.simulee : X% | P.marche : X% | Ecart : +X%
-EV : +X.XX | Kelly : X.X% | Confiance : __/25
-Meilleure value : [match winner ou derive] @ [cote] → EV = +X.XX
+MEILLEUR PARI DERIVE (P ≥ 70% + Value) :
+→ Selection : ___ @ cote ___ | P.sim : ___% | EV : +___ | Kelly : ___% | Robustesse : ___
 Facteurs cles : 1.___ 2.___ 3.___
 Risques : 1.___ 2.___
-Robustesse : [ROBUSTE / ACCEPTABLE / FRAGILE]
+Confiance donnees : __/25
+
+AUTRES DERIVES QUALIFIES (P ≥ 70% + EV > 0) :
+Lister par EV decroissante.
+Si aucun qualifie : "Aucun derive ne combine P>=70% et EV>0 → NE PAS JOUER."

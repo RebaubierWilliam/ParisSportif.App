@@ -1,7 +1,9 @@
 /**
  * extracteur_mesParis.js — Extracteur adaptatif ParionsSport
- * Mode 1 : page "Mes paris"  → psel-history-card
- * Mode 2 : page de cotes     → psel-event / psel-live-event
+ * Mode 1 : page "Mes paris"  → psel-history-card (ancien site)
+ * Mode 2 : page de cotes     → psel-event / psel-live-event (ancien site)
+ * Mode 3 : marchés question  → psel-market (ancien site)
+ * Mode 4 : page paris ouverts → div.match-home (nouveau site 2026)
  */
 (function () {
     'use strict';
@@ -34,7 +36,24 @@
     }
 
     function detecterSport(root) {
-        // 1. Essayer plusieurs sélecteurs d'icône de sport
+        // 1. Nouveau site : data attribute "tp-pictoSport-XXX" ou xlink:href="#sport"
+        const sportData = root.querySelector('[data*="tp-pictoSport-"]');
+        if (sportData) {
+            const dataAttr = sportData.getAttribute('data') || '';
+            const m = dataAttr.match(/tp-pictoSport-(.+)/);
+            if (m) {
+                const r = matchSportStr(m[1]);
+                if (r) return r;
+            }
+        }
+        const useEl = root.querySelector('svg use[xlink\\:href]');
+        if (useEl) {
+            const href = useEl.getAttribute('xlink:href') || '';
+            const r = matchSportStr(href.replace('#', ''));
+            if (r) return r;
+        }
+
+        // 2. Ancien site : sélecteurs d'icône de sport
         const iconSelectors = [
             '[class*="sprite-icon-"]',
             '[class*="sport-icon"]',
@@ -50,14 +69,14 @@
             if (r) return r;
         }
 
-        // 2. Chercher dans les ancêtres (jusqu'à 4 niveaux)
+        // 3. Chercher dans les ancêtres (jusqu'à 4 niveaux)
         let ancestor = root.parentElement;
         for (let i = 0; i < 4 && ancestor; i++, ancestor = ancestor.parentElement) {
             const r = matchSportStr(ancestor.className || '');
             if (r) return r;
         }
 
-        // 3. Fallback sur l'URL
+        // 4. Fallback sur l'URL
         const r = matchSportStr(window.location.pathname);
         if (r) return r;
 
@@ -66,7 +85,7 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  MODE 1 — Mes paris (psel-history-card)
+    //  MODE 1 — Mes paris (psel-history-card) — ancien site
     // ══════════════════════════════════════════════════════════════════
     function extracterMesParis() {
         const cards = document.querySelectorAll('psel-history-card');
@@ -192,7 +211,7 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  MODE 2 — Page de cotes (événements disponibles)
+    //  MODE 2 — Page de cotes ancien site (psel-event)
     // ══════════════════════════════════════════════════════════════════
     function extracterPageCotes() {
         // Sélecteur réel confirmé par dump HTML : psel-event-main
@@ -361,7 +380,7 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  MODE 3 — Page détail match : marchés question (buteur, essai…)
+    //  MODE 3 — Page détail match ancien site : marchés question
     // ══════════════════════════════════════════════════════════════════
     function extracterMarchesQuestion() {
         // Sélecteurs pour les blocs de marché dans une page de détail de match
@@ -523,23 +542,197 @@
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  MODE 4 — Dump diagnostic HTML (pour debug)
+    //  MODE 4 — Nouveau site 2026 : div.match-home (paris ouverts)
+    //  Structure : div.match-home contenant :
+    //    a.match-home_left[href] → lien + icône sport (svg use xlink:href="#tennis")
+    //    div.match-home_title    → équipes (ex: "S.Korda-M.Landaluce")
+    //    span[data*="ligueTitle"]→ ligue (ex: "Miami H")
+    //    p.match-home_time       → marché + heure (ex: "N°416 1/N/2 I Fin de valid. 24/03 15h55")
+    //    app-market-template     → cotes :
+    //      button.outcomeButton  → .outcomeButton_type (1/N/2) + .outcomeButton_value (cote)
+    //    span.outcome-repartition-percentage → pourcentages
+    // ══════════════════════════════════════════════════════════════════
+    function extracterNouveauSite() {
+        const matchDivs = document.querySelectorAll('.match-home');
+        if (matchDivs.length === 0) return null;
+
+        function sportDepuisHref(href) {
+            if (!href) return null;
+            return matchSportStr(href);
+        }
+
+        const paris = [];
+        let idx = 0;
+
+        matchDivs.forEach(el => {
+            try {
+                // Équipes depuis .match-home_title (format "Équipe1-Équipe2")
+                const titleEl = el.querySelector('.match-home_title');
+                const titleText = titleEl?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+                if (!titleText) return;
+
+                let equipes = [];
+                // Séparer les équipes par "-" mais attention aux noms composés
+                // Le format est "J.Lehecka-T.Fritz" ou "Miami F 2026" (pour les compétitions)
+                const dashMatch = titleText.match(/^(.+?)\s*-\s*(.+)$/);
+                if (dashMatch) {
+                    equipes = [dashMatch[1].trim(), dashMatch[2].trim()];
+                } else {
+                    equipes = [titleText];
+                }
+
+                // Ligue / compétition
+                const ligueEl = el.querySelector('[data*="ligueTitle"]');
+                const ligue = ligueEl?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+
+                // Heure / marché depuis .match-home_time
+                const timeEl = el.querySelector('.match-home_time');
+                const timeText = timeEl?.textContent.replace(/\s+/g, ' ').trim() ?? 'N/A';
+
+                // Extraire le type de marché et l'heure de validité
+                // Format typique : "N°416 1/N/2 I Fin de valid. 24/03 15h55"
+                let marche = ligue;
+                let minuteOuHeure = 'N/A';
+                if (timeText !== 'N/A') {
+                    // Extraire la fin de validité
+                    const validMatch = timeText.match(/Fin de valid\.\s*(.+)/i);
+                    if (validMatch) {
+                        minuteOuHeure = validMatch[1].trim();
+                    }
+                    // Le type de marché est dans le timeText (ex: "1/N/2", "Plus/Moins")
+                    const mktMatch = timeText.match(/N°\d+\s+(.+?)\s+I\s/i);
+                    if (mktMatch) {
+                        marche = mktMatch[1].trim() + (ligue ? ' — ' + ligue : '');
+                    } else {
+                        marche = timeText + (ligue ? ' — ' + ligue : '');
+                    }
+                }
+
+                // Sport : depuis href du lien, icône SVG, ou data attribute
+                const linkEl = el.querySelector('a.match-home_left[href], a[href*="/paris-"]');
+                const href = linkEl?.getAttribute('href') ?? '';
+                let sport = sportDepuisHref(href) || detecterSport(el) || 'Autre';
+
+                // Score (si live — chercher des éléments de score)
+                const score = el.querySelector('[class*="score--"], [class*="scoreboard"]')
+                    ?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+
+                // Live detection
+                const isLive = !!el.querySelector('[class*="live-timer"], [class*="liveTimer"], [class*="live-icon"]')
+                    || timeText.toLowerCase().includes('live')
+                    || timeText.toLowerCase().includes('en cours');
+
+                // Cotes depuis outcomeButton
+                const outcomeButtons = Array.from(el.querySelectorAll('.outcomeButton'));
+                const labels = outcomeButtons
+                    .map(btn => btn.querySelector('.outcomeButton_type')?.textContent.trim() ?? '')
+                    .filter(Boolean);
+                const cotes = outcomeButtons
+                    .map(btn => btn.querySelector('.outcomeButton_value')?.textContent.trim() ?? '')
+                    .filter(Boolean);
+
+                // Pourcentages de répartition
+                const pourcentages = Array.from(el.querySelectorAll('.outcome-repartition-percentage'))
+                    .map(pct => pct.textContent.trim())
+                    .filter(Boolean);
+
+                // Détection pari Question
+                const selText = labels.join(' / ').toLowerCase();
+                const mkLower = marche.toLowerCase();
+                const isQuestion = selText === 'oui / non' || selText === 'oui' || selText === 'non'
+                    || mkLower.includes('?') || mkLower.includes('buteur')
+                    || mkLower.includes('marque') || mkLower.includes('essai')
+                    || mkLower.includes('scorer') || mkLower.includes('réalise')
+                    || mkLower.includes('assist') || mkLower.includes('carton')
+                    || mkLower.includes('tir cadré') || mkLower.includes('performance')
+                    || mkLower.includes('mi-temps') || mkLower.startsWith('cb ');
+
+                // Détection Multi But de Ligue
+                const isMultiBut = mkLower.includes('multi but') || mkLower.includes('multi-but')
+                    || mkLower.includes('multi goal') || mkLower.includes('nombre total de buts');
+
+                const betType = isMultiBut ? 'Multi But' : isQuestion ? 'Question' : 'Disponible';
+
+                // Date depuis le date-competition parent
+                let datePari = 'N/A';
+                let dateSection = el.closest('.large-container');
+                if (dateSection) {
+                    const dateDiv = dateSection.previousElementSibling;
+                    if (dateDiv && dateDiv.classList.contains('date-competition')) {
+                        datePari = dateDiv.textContent.replace(/\s+/g, ' ').trim();
+                    }
+                }
+                // Fallback : chercher le date-competition le plus proche en remontant
+                if (datePari === 'N/A') {
+                    let prev = el.closest('.large-container, .match-home-container');
+                    while (prev) {
+                        prev = prev.previousElementSibling;
+                        if (prev && prev.classList.contains('date-competition')) {
+                            datePari = prev.textContent.replace(/\s+/g, ' ').trim();
+                            break;
+                        }
+                        if (!prev) break;
+                    }
+                }
+
+                paris.push({
+                    type: betType,
+                    sport,
+                    equipes,
+                    score,
+                    isLive,
+                    minuteOuHeure,
+                    marche,
+                    selection:         labels.join(' / ')  || 'N/A',
+                    cote:              cotes.join(' / ')   || 'N/A',
+                    pourcentagesParis: pourcentages,
+                    coteTotale: 'N/A',
+                    mise: '',
+                    gainsPotentiels: '',
+                    cashout: null,
+                    numeroPari: `nv-${++idx}`,
+                    datePari,
+                    ligue,
+                    lienMatch: href,
+                });
+            } catch (err) { log('Erreur match-home: ' + err.message); }
+        });
+
+        return paris.length > 0 ? paris : null;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  Dump diagnostic HTML (pour debug)
     // ══════════════════════════════════════════════════════════════════
     function dumpPageStructure() {
-        const tags = new Set();
+        // Ancien site : éléments psel-*
+        const pselTags = new Set();
         document.querySelectorAll('*').forEach(el => {
             const tag = el.tagName.toLowerCase();
-            if (tag.startsWith('psel-')) tags.add(tag);
+            if (tag.startsWith('psel-')) pselTags.add(tag);
         });
-        log('📋 Éléments psel-* trouvés sur cette page : ' + [...tags].sort().join(', '));
+        if (pselTags.size > 0) {
+            log('📋 Éléments psel-* trouvés : ' + [...pselTags].sort().join(', '));
+        }
 
-        // Compter les outcomes et markets
-        const nbOutcomes = document.querySelectorAll('psel-outcome').length;
-        const nbMarkets = document.querySelectorAll('psel-market, psel-market-group, [class*="market"]').length;
-        const nbCards = document.querySelectorAll('psel-history-card').length;
-        const nbEvents = document.querySelectorAll('psel-event-main, psel-event-card, psel-live-event-card').length;
-        const nbOpponents = document.querySelectorAll('.psel-opponent__name').length;
-        log(`📊 cards: ${nbCards} | events: ${nbEvents} | opponents: ${nbOpponents} | outcomes: ${nbOutcomes} | markets: ${nbMarkets}`);
+        // Nouveau site : éléments match-home + app-*
+        const appTags = new Set();
+        document.querySelectorAll('*').forEach(el => {
+            const tag = el.tagName.toLowerCase();
+            if (tag.startsWith('app-')) appTags.add(tag);
+        });
+        if (appTags.size > 0) {
+            log('📋 Éléments app-* trouvés : ' + [...appTags].sort().join(', '));
+        }
+
+        // Compter les éléments clés
+        const nbPselCards = document.querySelectorAll('psel-history-card').length;
+        const nbPselEvents = document.querySelectorAll('psel-event-main, psel-event-card, psel-live-event-card').length;
+        const nbPselOutcomes = document.querySelectorAll('psel-outcome').length;
+        const nbMatchHome = document.querySelectorAll('.match-home').length;
+        const nbOutcomeButtons = document.querySelectorAll('.outcomeButton').length;
+        log(`📊 [ancien] cards: ${nbPselCards} | events: ${nbPselEvents} | outcomes: ${nbPselOutcomes}`);
+        log(`📊 [nouveau] match-home: ${nbMatchHome} | outcomeButtons: ${nbOutcomeButtons}`);
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -548,23 +741,31 @@
     log('🔍 Détection du type de page…');
     dumpPageStructure();
 
+    // 1. Ancien site : page "Mes paris"
     const paris = extracterMesParis();
     if (paris !== null) {
-        log(`✅ Mode "Mes paris" — ${paris.length} paris trouvés`);
+        log(`✅ Mode "Mes paris" (ancien site) — ${paris.length} paris trouvés`);
         sendParis(paris);
         return;
     }
 
+    // 2. Ancien site : page de cotes
     const cotes = extracterPageCotes();
     const questions = extracterMarchesQuestion();
-
-    // Combiner cotes classiques + marchés question si les deux existent
     if (cotes !== null || questions !== null) {
         const combined = [...(cotes || []), ...(questions || [])];
         const nbCotes = cotes ? cotes.length : 0;
         const nbQ = questions ? questions.length : 0;
-        log(`✅ ${nbCotes} cotes classiques + ${nbQ} marchés question — ${combined.length} total`);
+        log(`✅ ${nbCotes} cotes classiques + ${nbQ} marchés question (ancien site) — ${combined.length} total`);
         sendParis(combined);
+        return;
+    }
+
+    // 3. Nouveau site 2026 : div.match-home
+    const nouveauSite = extracterNouveauSite();
+    if (nouveauSite !== null) {
+        log(`✅ Mode nouveau site — ${nouveauSite.length} paris trouvés`);
+        sendParis(nouveauSite);
         return;
     }
 

@@ -91,60 +91,62 @@ Si < 21/25 : lister les [MANQUANT] par impact decroissant pour consolider avant 
 Voici les donnees collectees en Phase 1 (ci-dessus dans la conversation).
 Utilise UNIQUEMENT ces donnees. Si une donnee est [MANQUANT], ne PAS l'inventer — l'exclure du calcul.
 
-PHASE 2 — ANALYSE MATHEMATIQUE
+# PHASE 2 — ANALYSE MATHEMATIQUE (V2 OPTIMISEE)
 
-2.1 NOTATION MULTICRITERES (0-100)
+## 2.1 AJUSTEMENT DES RATINGS (ON/OFF ABSENCES)
+Avant notation, ajuster l'ORTG et le DRTG de base en fonction de l'impact (Net Rating / On-Off) des joueurs majeurs absents.
+*   ORTG_A_ajuste = ORTG_A +/- Impact_Offensif_Absents
+*   DRTG_A_ajuste = DRTG_A +/- Impact_Defensif_Absents
+*(Faire de même pour B)*
+
+## 2.2 NOTATION MULTICRITERES (0-100)
 Echelle : 90-100=elite top3 | 75-89=tres bon top10 | 60-74=au-dessus moy | 45-59=sous moy | <45=faible
 
 | Critere | Poids | Note A | Note B | Source |
 |---|---|---|---|---|
-| ORTG | 20% | | | |
-| DRTG | 20% | | | |
+| ORTG (Ajuste) | 20% | | | |
+| DRTG (Ajuste) | 20% | | | |
 | Forme recente L5 | 15% | | | |
 | Four Factors | 15% | | | |
-| Absences / rotation | 15% | | | |
+| Profondeur Banc | 15% | | | |
 | H2H + contexte | 15% | | | |
 
 Score_A = sum(poids * note_A) / 100 = ___
 Score_B = sum(poids * note_B) / 100 = ___
 
-2.2 PROBABILITES & SCORE ESTIME
+## 2.3 PROBABILITES, SCORE ESTIME & VERIFICATION PYTHAGORE
 delta = (Score_A - Score_B) / 100
-P(A) = 1 / (1 + e^(-k * delta)) avec k = 6
-P(B) = 1 - P(A)
+P(A)_base = 1 / (1 + e^(-k * delta)) avec k = 6
 
-Estimation score :
-  Pace_match = (Pace_A + Pace_B) / 2
-  Points_A = Pace_match * ORTG_A / 100 | Points_B = idem
-  Total estime = Points_A + Points_B | Marge = Points_A - Points_B
+**Estimation score (Croisement Attaque / Defense) :**
+* Pace_match = (Pace_A + Pace_B) / 2
+* Points_A = Pace_match * ((ORTG_A_ajuste + DRTG_B_ajuste) / 2) / 100
+* Points_B = Pace_match * ((ORTG_B_ajuste + DRTG_A_ajuste) / 2) / 100
+* Total estime = Points_A + Points_B | Marge = Points_A - Points_B
 
-2.3 SCAN COMPLET — UTILISER LES COTES PARIONSPORT DE LA PHASE 1
+**Verif Pythagore NBA (Lissage de la probabilité) :**
+* P(A)_pyth = Points_A^14 / (Points_A^14 + Points_B^14)
+* P(B)_pyth = 1 - P(A)_pyth
+* P_simulee_A = (P(A)_base + P(A)_pyth) / 2  *(Probabilité finale retenue pour le match)*
+* P_simulee_B = 1 - P_simulee_A
+
+## 2.4 SCAN COMPLET — UTILISER LES COTES PARIONSPORT DE LA PHASE 1
 Pour CHAQUE marche collecte en 1.6, calculer P_sim et comparer a la cote reelle :
-| Marche | P.simulee | Cote PS | P.impl | EV | Kelly |
+*(Pour les paris Mi-Temps, ajuster P_sim en pondérant avec le Net Rating 1st Half des équipes si disponible, sinon réduire la confiance).*
+
+| Marche | P.simulee | Cote PS | P.impl | EV | Kelly (1/4) |
 |---|---|---|---|---|---|
-Remplir une ligne par marche/selection collecte en 1.6 (vainqueur, handicaps, Over/Under pts, mi-temps, ecart victoire...).
-Ne PAS inventer de cotes — utiliser UNIQUEMENT celles collectees en Phase 1.
-Si [NON PROPOSE] → ne pas lister.
-EV = (P_sim * Cote) - 1 | Kelly = (P_sim * Cote - 1) / (Cote - 1)
+*(Remplir une ligne par marche/selection collecte en 1.6)*
+*(Ne PAS inventer de cotes — utiliser UNIQUEMENT celles collectees en Phase 1)*
+*(Si [NON PROPOSE] → ne pas lister)*
 
-2.4 FILTRE : PARIS DERIVES P ≥ 70% ET VALUE (EV > 0)
-Filtrer le tableau 2.3 : garder UNIQUEMENT P_sim >= 70% ET EV > 0.
-| Marche | P.sim | Cote | EV | Kelly | Robuste ? |
+* **EV** = (P_sim * Cote) - 1 
+* **Kelly (1/4)** = (((P_sim * Cote - 1) / (Cote - 1)) / 4) * 100  *(Exprimé en % de bankroll)*
+
+## 2.5 FILTRE : PARIS DERIVES P ≥ 70% ET VALUE (EV > 0)
+Filtrer le tableau 2.4 : garder UNIQUEMENT P_sim >= 70% ET EV > 0.
+
+| Marche | P.sim | Cote | EV | Kelly (1/4) | Robuste ? |
 |---|---|---|---|---|---|
-Pour chaque ligne, tester sensibilite -10% sur les scores :
-  Robuste = value maintenue a -10% | Fragile = value disparait a -10%
-
-Si AUCUN derive ne passe 70%+value : baisser a 65% et signaler [SEUIL ABAISSE].
-
-RECOMMANDATION FINALE
-Match : [A] vs [B] | Competition : ___ | Date : ___
-Score total estime : X-X (total : X)
-MEILLEUR PARI DERIVE (P ≥ 70% + Value) :
-→ Selection : ___ @ cote ___ | P.sim : ___% | EV : +___ | Kelly : ___% | Robustesse : ___
-Facteurs cles : 1.___ 2.___ 3.___
-Risques : 1.___ 2.___
-Confiance donnees : __/25
-
-AUTRES DERIVES QUALIFIES (P ≥ 70% + EV > 0) :
-Lister par EV decroissante.
-Si aucun qualifie : "Aucun derive ne combine P>=70% et EV>0 → NE PAS JOUER."
+*(Pour chaque ligne, tester sensibilite -10% sur les scores)*
+* Robuste = value maintenue a -10% | Fragile = value disparait a -1

@@ -141,23 +141,6 @@ public partial class MainWindow : Window
         });
     }
 
-    // ── Bouton Prompt Complet : prompt autonome avec protocole intégré ────────
-    private void BtnPromptComplet_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
-        _vm.SelectedPari = pari;
-        OpenPromptTab(pari, PromptBuilder.BuildFull(pari), pari.NumeroPari + "_full", $"📄 {pari.MatchLabel}");
-        _vm.Log($"📄 Prompt complet généré pour {pari.MatchLabel} — copié dans le presse-papier");
-    }
-
-    // ── Bouton Prompt Agent : prompt 2 phases collecte + analyse ─────────────
-    private void BtnPromptAgent_Click(object sender, RoutedEventArgs e)
-    {
-        if ((sender as FrameworkElement)?.Tag is not Pari pari) return;
-        _vm.SelectedPari = pari;
-        OpenPromptTab(pari, PromptBuilder.BuildAgent(pari), pari.NumeroPari + "_agent", $"🔬 {pari.MatchLabel}");
-        _vm.Log($"🔬 Prompt agent généré pour {pari.MatchLabel} — copié dans le presse-papier");
-    }
 
     // ── Bouton Prompt Mamouth : 2 phases <800 mots chacune ─────────────────
     private void BtnPromptMamouth_Click(object sender, RoutedEventArgs e)

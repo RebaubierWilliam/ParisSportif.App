@@ -262,22 +262,7 @@
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
                     <StackPanel Orientation="Vertical" Margin="6,4"
-                                VerticalAlignment="Center">
-                      <Button Content="📄 Complet"
-                              Style="{StaticResource BtnPrimary}"
-                              FontSize="12" Padding="8,5"
-                              Tag="{Binding}"
-                              Click="BtnPromptComplet_Click"
-                              Visibility="Collapsed"
-                              ToolTip="Prompt complet autonome — données + protocole intégré"/>
-                      <Button Content="🔬 Agent"
-                              Style="{StaticResource BtnSecondary}"
-                              FontSize="12" Padding="8,5"
-                              Margin="0,4,0,0"
-                              Tag="{Binding}"
-                              Click="BtnPromptAgent_Click"
-                              Visibility="Collapsed"
-                              ToolTip="Prompt 2 phases : collecte structurée + analyse mathématique (~120 lignes)"/>
+                                VerticalAlignment="Center"> 
                       <Button Content="🦣 Mamouth"
                               Style="{StaticResource BtnSecondary}"
                               FontSize="12" Padding="8,5"

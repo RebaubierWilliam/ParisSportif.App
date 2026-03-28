@@ -521,7 +521,7 @@ public partial class MainWindow : Window
     private async void BtnConsoliderMamouth_Click(object sender, RoutedEventArgs e)
     {
         const string prompt = """
-            La Phase 1 s'est terminee avec une confiance insuffisante (< 21/25).
+            La Phase 1 s'est terminee avec une confiance insuffisante (< 25/25).
             Consolide les donnees : pour chaque [MANQUANT], effectue 3 nouvelles recherches web (sources differentes, langues differentes).
             Remplace chaque [MANQUANT] trouve par la valeur reelle.
             Recalcule le score de confiance (/25) avec les memes criteres et malus.
